@@ -6,7 +6,9 @@ import {Menu} from './components/Menu.js';
 import {CopilotConnect} from './screens/CopilotConnect.js';
 import {QAPlan} from './screens/QAPlan.js';
 import {GitChanges} from './screens/GitChanges.js';
+import {KnowledgeBase} from './screens/KnowledgeBase.js';
 import {CopilotProvider} from './context/CopilotContext.js';
+import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
 import type {Screen} from './types/index.js';
 
 const palette = {
@@ -35,6 +37,8 @@ const AppContent = () => {
         return <QAPlan onBack={handleBack} />;
       case 'git-changes':
         return <GitChanges onBack={handleBack} />;
+      case 'knowledge-base':
+        return <KnowledgeBase onBack={handleBack} />;
       case 'main':
       default:
         return <Menu onSelect={handleSelect} />;
@@ -76,7 +80,9 @@ const AppContent = () => {
 const App = () => {
   return (
     <CopilotProvider>
-      <AppContent />
+      <KnowledgeBaseProvider>
+        <AppContent />
+      </KnowledgeBaseProvider>
     </CopilotProvider>
   );
 };

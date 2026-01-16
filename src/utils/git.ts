@@ -252,3 +252,67 @@ export function getUntrackedFileContent(path: string): FileDiff {
     truncated: false,
   };
 }
+
+export function getDefaultBranch(): string {
+  // Try to get the default branch from remote
+  const remoteResult = runGit(['remote', 'show', 'origin']);
+  if (remoteResult.success) {
+    const match = remoteResult.stdout.match(/HEAD branch:\s*(\S+)/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  // Fallback: check if main or master exists
+  const mainResult = runGit(['rev-parse', '--verify', 'main']);
+  if (mainResult.success) {
+    return 'main';
+  }
+
+  const masterResult = runGit(['rev-parse', '--verify', 'master']);
+  if (masterResult.success) {
+    return 'master';
+  }
+
+  return 'main';
+}
+
+export function getBranchDiff(baseBranch?: string): string {
+  if (!isGitRepository()) {
+    return '';
+  }
+
+  const base = baseBranch || getDefaultBranch();
+  const currentBranch = getCurrentBranch();
+
+  // If on the base branch, get staged/unstaged changes
+  if (currentBranch === base || !currentBranch) {
+    const stagedResult = runGit(['diff', '--cached']);
+    const unstagedResult = runGit(['diff']);
+
+    let diff = '';
+    if (stagedResult.stdout) {
+      diff += '# Staged Changes\n' + stagedResult.stdout;
+    }
+    if (unstagedResult.stdout) {
+      if (diff) diff += '\n\n';
+      diff += '# Unstaged Changes\n' + unstagedResult.stdout;
+    }
+
+    return diff || '(no changes)';
+  }
+
+  // Get diff between current branch and base branch
+  const result = runGit(['diff', `${base}...HEAD`]);
+
+  if (!result.success) {
+    // Try without the three-dot notation
+    const fallbackResult = runGit(['diff', base, 'HEAD']);
+    if (fallbackResult.success) {
+      return fallbackResult.stdout || '(no changes)';
+    }
+    return '(unable to get diff)';
+  }
+
+  return result.stdout || '(no changes)';
+}

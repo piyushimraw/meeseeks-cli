@@ -43,6 +43,12 @@ const menuItems: MenuItemData[] = [
     description: 'See modified files in project',
     category: 'tools',
   },
+  {
+    label: 'Knowledge Base',
+    value: 'knowledge-base',
+    description: 'Manage documentation sources',
+    category: 'tools',
+  },
 ];
 
 export const Menu: React.FC<MenuProps> = ({onSelect}) => {
