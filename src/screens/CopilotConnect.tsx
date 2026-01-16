@@ -31,7 +31,7 @@ interface CopilotConnectProps {
 }
 
 export const CopilotConnect: React.FC<CopilotConnectProps> = ({onBack}) => {
-  const {authState, connect, disconnect, autoDetect, verify} = useCopilot();
+  const {authState, connect, disconnect, autoDetect, verify, retryInit} = useCopilot();
   const [state, setState] = useState<ConnectionState>('idle');
   const [detectedToken, setDetectedToken] = useState<DetectedToken | null>(
     null,
@@ -39,14 +39,23 @@ export const CopilotConnect: React.FC<CopilotConnectProps> = ({onBack}) => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Sync local state with context's initialization state
   useEffect(() => {
-    if (authState.isConnected) {
+    if (authState.isInitializing) {
+      // Still initializing from app startup
+      setState('detecting');
+    } else if (authState.isConnected) {
       setState('connected');
-    } else {
-      // Auto-detect on mount
-      handleAutoDetect();
+    } else if (authState.initAttempted) {
+      // Init completed but not connected
+      if (authState.initError) {
+        setError(authState.initError);
+        setState('error');
+      } else {
+        setState('no-token');
+      }
     }
-  }, []);
+  }, [authState.isInitializing, authState.isConnected, authState.initAttempted, authState.initError]);
 
   const handleAutoDetect = async () => {
     setState('detecting');
@@ -102,7 +111,8 @@ export const CopilotConnect: React.FC<CopilotConnectProps> = ({onBack}) => {
   };
 
   const handleRetry = () => {
-    handleAutoDetect();
+    setError(null);
+    retryInit();
   };
 
   useInput((input, key) => {
@@ -141,7 +151,7 @@ export const CopilotConnect: React.FC<CopilotConnectProps> = ({onBack}) => {
             <Text color={palette.yellow}>Detecting Copilot tokens...</Text>
             <Box marginTop={1}>
               <Text color={palette.dim}>
-                Checking CLI, VS Code, and JetBrains locations
+                Checking CLI and VS Code locations
               </Text>
             </Box>
           </Box>
@@ -226,16 +236,6 @@ export const CopilotConnect: React.FC<CopilotConnectProps> = ({onBack}) => {
                 <Box marginLeft={2}>
                   <Text color={palette.dim}>
                     Install VS Code and the GitHub Copilot extension
-                  </Text>
-                </Box>
-              </Box>
-              <Box marginTop={1} flexDirection="column">
-                <Text color={palette.cyan} bold>
-                  Option 3: JetBrains IDE with Copilot Plugin
-                </Text>
-                <Box marginLeft={2}>
-                  <Text color={palette.dim}>
-                    Install the GitHub Copilot plugin in your JetBrains IDE
                   </Text>
                 </Box>
               </Box>

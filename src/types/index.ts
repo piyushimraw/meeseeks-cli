@@ -10,7 +10,7 @@ export interface MenuCategory {
   items: MenuItem[];
 }
 
-export type TokenSource = 'cli' | 'vscode' | 'jetbrains' | 'unknown';
+export type TokenSource = 'cli' | 'vscode' | 'unknown';
 
 export interface CopilotConfig {
   tokenSource: TokenSource;

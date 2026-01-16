@@ -9,6 +9,7 @@ import {
 import {
   detectCopilotToken,
   verifyCopilotToken,
+  clearCopilotTokenCache,
   type DetectedToken,
 } from '../utils/copilot.js';
 
@@ -17,6 +18,9 @@ export interface CopilotAuthState {
   tokenSource?: TokenSource;
   lastVerified?: string;
   isLoading: boolean;
+  isInitializing: boolean;
+  initAttempted: boolean;
+  initError?: string;
   token?: string;
 }
 
@@ -28,6 +32,7 @@ interface CopilotContextType {
   autoDetect: () => Promise<DetectedToken | null>;
   verify: (token: string) => Promise<{success: boolean; error?: string}>;
   getToken: () => string | null;
+  retryInit: () => void;
 }
 
 const CopilotContext = createContext<CopilotContextType | undefined>(undefined);
@@ -41,44 +46,114 @@ export const CopilotProvider: React.FC<{children: React.ReactNode}> = ({
   const [authState, setAuthState] = useState<CopilotAuthState>({
     isConnected: false,
     isLoading: true,
+    isInitializing: true,
+    initAttempted: false,
   });
 
-  const loadState = () => {
-    const config = getCopilotConfig();
-    setAuthState({
-      isConnected: checkConnected(),
-      tokenSource: config?.tokenSource,
-      lastVerified: config?.lastVerified,
-      isLoading: false,
-    });
+  const initializeAuth = async () => {
+    setAuthState((prev) => ({
+      ...prev,
+      isInitializing: true,
+      initError: undefined,
+    }));
+
+    try {
+      // Detect token from known locations
+      const detected = detectCopilotToken();
+
+      if (!detected) {
+        // No token found - not an error, just not connected
+        setAuthState({
+          isConnected: false,
+          isLoading: false,
+          isInitializing: false,
+          initAttempted: true,
+        });
+        return;
+      }
+
+      // Verify the detected token
+      const result = await verifyCopilotToken(detected.token);
+
+      if (result.success) {
+        // Token is valid - store in memory and save config
+        memoryToken = detected.token;
+        saveCopilotConfig(detected.source);
+        setAuthState({
+          isConnected: true,
+          tokenSource: detected.source,
+          lastVerified: new Date().toISOString(),
+          isLoading: false,
+          isInitializing: false,
+          initAttempted: true,
+        });
+      } else {
+        // Token is invalid/expired - clear any stale config
+        clearCopilotConfig();
+        setAuthState({
+          isConnected: false,
+          isLoading: false,
+          isInitializing: false,
+          initAttempted: true,
+          initError: result.error || 'Token verification failed',
+        });
+      }
+    } catch (error) {
+      // Network or other error during verification
+      setAuthState((prev) => ({
+        ...prev,
+        isLoading: false,
+        isInitializing: false,
+        initAttempted: true,
+        initError:
+          error instanceof Error ? error.message : 'Failed to initialize',
+      }));
+    }
   };
 
   useEffect(() => {
-    loadState();
+    initializeAuth();
   }, []);
 
   const connect = (tokenSource: TokenSource, token: string) => {
     memoryToken = token;
     saveCopilotConfig(tokenSource);
-    setAuthState({
+    setAuthState((prev) => ({
+      ...prev,
       isConnected: true,
       tokenSource,
       lastVerified: new Date().toISOString(),
       isLoading: false,
-    });
+    }));
   };
 
   const disconnect = () => {
     memoryToken = null;
     clearCopilotConfig();
-    setAuthState({
+    clearCopilotTokenCache();
+    setAuthState((prev) => ({
+      ...prev,
       isConnected: false,
+      tokenSource: undefined,
+      lastVerified: undefined,
       isLoading: false,
-    });
+      initError: undefined,
+    }));
   };
 
   const refresh = () => {
-    loadState();
+    const config = getCopilotConfig();
+    setAuthState((prev) => ({
+      ...prev,
+      isConnected: checkConnected(),
+      tokenSource: config?.tokenSource,
+      lastVerified: config?.lastVerified,
+      isLoading: false,
+    }));
+  };
+
+  const retryInit = () => {
+    initializeAuth();
   };
 
   const autoDetect = async (): Promise<DetectedToken | null> => {
@@ -109,7 +184,7 @@ export const CopilotProvider: React.FC<{children: React.ReactNode}> = ({
 
   return (
     <CopilotContext.Provider
-      value={{authState, connect, disconnect, refresh, autoDetect, verify, getToken}}
+      value={{authState, connect, disconnect, refresh, autoDetect, verify, getToken, retryInit}}
     >
       {children}
     </CopilotContext.Provider>

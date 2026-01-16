@@ -101,9 +101,11 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
           <Text color={palette.yellow} bold>
             PROVIDERS
           </Text>
-          {authState.isConnected && (
+          {authState.isInitializing ? (
+            <Text color={palette.dim}> (detecting...)</Text>
+          ) : authState.isConnected ? (
             <Text color={palette.green}> (1 connected)</Text>
-          )}
+          ) : null}
         </Box>
         <Box flexDirection="column" marginLeft={2}>
           {providerItems.map(renderItem)}
