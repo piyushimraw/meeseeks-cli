@@ -10,6 +10,7 @@ export interface MeeseeksConfig {
   copilot?: {
     tokenSource: TokenSource;
     lastVerified?: string;
+    selectedModel?: string;  // Selected model ID (e.g., 'gpt-4o')
   };
 }
 
@@ -60,4 +61,18 @@ export function clearCopilotConfig(): void {
 export function isCopilotConnected(): boolean {
   const copilot = getCopilotConfig();
   return !!copilot?.tokenSource;
+}
+
+export function saveSelectedModel(modelId: string): void {
+  const config = loadConfig();
+  if (!config.copilot) {
+    config.copilot = {tokenSource: 'unknown'};
+  }
+  config.copilot.selectedModel = modelId;
+  saveConfig(config);
+}
+
+export function getSelectedModel(): string | undefined {
+  const config = loadConfig();
+  return config.copilot?.selectedModel;
 }

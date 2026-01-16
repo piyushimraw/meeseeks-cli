@@ -111,7 +111,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
         role: 'user',
         content: userPrompt,
       },
-    ]);
+    ], authState.selectedModel);
 
     if (result.success && result.content) {
       setOutput(result.content);
@@ -301,7 +301,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
             )}
             <Box marginTop={1}>
               <Text color={palette.dim}>
-                Analyzing changes with GitHub Copilot (model: gpt-4o)
+                Analyzing changes with GitHub Copilot (model: {authState.selectedModel})
               </Text>
             </Box>
           </Box>

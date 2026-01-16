@@ -5,11 +5,14 @@ import {
   saveCopilotConfig,
   clearCopilotConfig,
   isCopilotConnected as checkConnected,
+  saveSelectedModel,
+  getSelectedModel,
 } from '../utils/settings.js';
 import {
   detectCopilotToken,
   verifyCopilotToken,
   clearCopilotTokenCache,
+  DEFAULT_MODEL_ID,
   type DetectedToken,
 } from '../utils/copilot.js';
 
@@ -22,6 +25,7 @@ export interface CopilotAuthState {
   initAttempted: boolean;
   initError?: string;
   token?: string;
+  selectedModel: string;
 }
 
 interface CopilotContextType {
@@ -33,6 +37,7 @@ interface CopilotContextType {
   verify: (token: string) => Promise<{success: boolean; error?: string}>;
   getToken: () => string | null;
   retryInit: () => void;
+  setModel: (modelId: string) => void;
 }
 
 const CopilotContext = createContext<CopilotContextType | undefined>(undefined);
@@ -48,6 +53,7 @@ export const CopilotProvider: React.FC<{children: React.ReactNode}> = ({
     isLoading: true,
     isInitializing: true,
     initAttempted: false,
+    selectedModel: getSelectedModel() || DEFAULT_MODEL_ID,
   });
 
   const initializeAuth = async () => {
@@ -63,12 +69,13 @@ export const CopilotProvider: React.FC<{children: React.ReactNode}> = ({
 
       if (!detected) {
         // No token found - not an error, just not connected
-        setAuthState({
+        setAuthState((prev) => ({
+          ...prev,
           isConnected: false,
           isLoading: false,
           isInitializing: false,
           initAttempted: true,
-        });
+        }));
         return;
       }
 
@@ -79,24 +86,26 @@ export const CopilotProvider: React.FC<{children: React.ReactNode}> = ({
         // Token is valid - store in memory and save config
         memoryToken = detected.token;
         saveCopilotConfig(detected.source);
-        setAuthState({
+        setAuthState((prev) => ({
+          ...prev,
           isConnected: true,
           tokenSource: detected.source,
           lastVerified: new Date().toISOString(),
           isLoading: false,
           isInitializing: false,
           initAttempted: true,
-        });
+        }));
       } else {
         // Token is invalid/expired - clear any stale config
         clearCopilotConfig();
-        setAuthState({
+        setAuthState((prev) => ({
+          ...prev,
           isConnected: false,
           isLoading: false,
           isInitializing: false,
           initAttempted: true,
           initError: result.error || 'Token verification failed',
-        });
+        }));
       }
     } catch (error) {
       // Network or other error during verification
@@ -182,9 +191,17 @@ export const CopilotProvider: React.FC<{children: React.ReactNode}> = ({
     return null;
   };
 
+  const setModel = (modelId: string): void => {
+    saveSelectedModel(modelId);
+    setAuthState((prev) => ({
+      ...prev,
+      selectedModel: modelId,
+    }));
+  };
+
   return (
     <CopilotContext.Provider
-      value={{authState, connect, disconnect, refresh, autoDetect, verify, getToken, retryInit}}
+      value={{authState, connect, disconnect, refresh, autoDetect, verify, getToken, retryInit, setModel}}
     >
       {children}
     </CopilotContext.Provider>

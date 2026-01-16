@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import type {TokenSource} from '../types/index.js';
+import type {TokenSource, CopilotModel} from '../types/index.js';
 
 export type {TokenSource};
 
@@ -361,4 +361,136 @@ export function getSourceDisplayName(source: TokenSource): string {
     default:
       return 'Unknown';
   }
+}
+
+/**
+ * Default model ID
+ */
+export const DEFAULT_MODEL_ID = 'gpt-4o';
+
+/**
+ * Fallback list of known Copilot models
+ */
+export const FALLBACK_MODELS: CopilotModel[] = [
+  {id: 'gpt-4o', name: 'GPT-4o', vendor: 'OpenAI'},
+  {id: 'gpt-4o-mini', name: 'GPT-4o Mini', vendor: 'OpenAI'},
+  {id: 'gpt-4', name: 'GPT-4', vendor: 'OpenAI'},
+  {id: 'gpt-4-turbo', name: 'GPT-4 Turbo', vendor: 'OpenAI'},
+  {id: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo', vendor: 'OpenAI'},
+  {id: 'claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', vendor: 'Anthropic'},
+  {id: 'claude-3.5-haiku', name: 'Claude 3.5 Haiku', vendor: 'Anthropic'},
+  {id: 'o1-preview', name: 'o1 Preview', vendor: 'OpenAI'},
+  {id: 'o1-mini', name: 'o1 Mini', vendor: 'OpenAI'},
+];
+
+export interface FetchModelsResult {
+  success: boolean;
+  models?: CopilotModel[];
+  error?: string;
+  source: 'api' | 'fallback';
+}
+
+/**
+ * Fetch available models from Copilot API with fallback to hardcoded list
+ */
+export async function fetchAvailableModels(
+  token: string,
+): Promise<FetchModelsResult> {
+  try {
+    // Get fresh Copilot API token
+    const tokenResult = await getCopilotApiToken(token);
+    if (!tokenResult.success || !tokenResult.token) {
+      return {
+        success: true,
+        models: FALLBACK_MODELS,
+        source: 'fallback',
+        error: tokenResult.error,
+      };
+    }
+
+    const apiToken = tokenResult.token;
+    const apiEndpoint = tokenResult.apiEndpoint || 'https://api.githubcopilot.com';
+
+    // Try to fetch models from API
+    const response = await fetch(`${apiEndpoint}/models`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiToken}`,
+        Accept: 'application/json',
+        'User-Agent': 'meeseeks-cli/1.0',
+        'Editor-Version': 'vscode/1.85.0',
+        'Editor-Plugin-Version': 'copilot/1.0.0',
+        'Copilot-Integration-Id': 'vscode-chat',
+      },
+    });
+
+    if (!response.ok) {
+      // API failed, use fallback
+      return {
+        success: true,
+        models: FALLBACK_MODELS,
+        source: 'fallback',
+      };
+    }
+
+    const data = await response.json();
+
+    // Parse API response - format may vary
+    let models: CopilotModel[] = [];
+    
+    if (data.data && Array.isArray(data.data)) {
+      // OpenAI-style response: { data: [{ id: "model-id", ... }] }
+      models = data.data.map((m: {id: string; name?: string; owned_by?: string}) => ({
+        id: m.id,
+        name: m.name || m.id,
+        vendor: m.owned_by || inferVendor(m.id),
+      }));
+    } else if (Array.isArray(data)) {
+      // Simple array response
+      models = data.map((m: string | {id: string; name?: string}) => {
+        if (typeof m === 'string') {
+          return {id: m, name: m, vendor: inferVendor(m)};
+        }
+        return {
+          id: m.id,
+          name: m.name || m.id,
+          vendor: inferVendor(m.id),
+        };
+      });
+    }
+
+    // If we got models from API, use them; otherwise fallback
+    if (models.length > 0) {
+      return {
+        success: true,
+        models,
+        source: 'api',
+      };
+    }
+
+    return {
+      success: true,
+      models: FALLBACK_MODELS,
+      source: 'fallback',
+    };
+  } catch (err) {
+    // Network error, use fallback
+    return {
+      success: true,
+      models: FALLBACK_MODELS,
+      source: 'fallback',
+      error: err instanceof Error ? err.message : 'Network error',
+    };
+  }
+}
+
+/**
+ * Infer vendor from model ID
+ */
+function inferVendor(modelId: string): string {
+  const id = modelId.toLowerCase();
+  if (id.includes('claude')) return 'Anthropic';
+  if (id.includes('gpt') || id.includes('o1')) return 'OpenAI';
+  if (id.includes('gemini')) return 'Google';
+  return 'Unknown';
 }

@@ -32,6 +32,12 @@ const menuItems: MenuItemData[] = [
     category: 'providers',
   },
   {
+    label: 'Select Model',
+    value: 'model-select',
+    description: 'Choose AI model',
+    category: 'providers',
+  },
+  {
     label: 'Create a QA Plan',
     value: 'qa-plan',
     description: 'Diff branch & generate test plan',
@@ -82,6 +88,7 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
     const globalIndex = menuItems.indexOf(item);
     const isSelected = globalIndex === selectedIndex;
     const isCopilot = item.value === 'copilot-connect';
+    const isModelSelect = item.value === 'model-select';
 
     return (
       <Box key={item.value}>
@@ -94,6 +101,8 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
             {' '}
             [Connected: {getSourceDisplayName(authState.tokenSource || 'unknown')}]
           </Text>
+        ) : isModelSelect && authState.isConnected ? (
+          <Text color={palette.cyan}> [{authState.selectedModel}]</Text>
         ) : (
           item.description && (
             <Text color={palette.dim}> ({item.description})</Text>

@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select';
 
 export interface MenuItem {
   label: string;
@@ -11,6 +11,13 @@ export interface MenuCategory {
 }
 
 export type TokenSource = 'cli' | 'vscode' | 'unknown';
+
+// Copilot Model Types
+export interface CopilotModel {
+  id: string;        // e.g., 'gpt-4o'
+  name: string;      // e.g., 'GPT-4o'
+  vendor?: string;   // e.g., 'OpenAI', 'Anthropic'
+}
 
 export interface CopilotConfig {
   tokenSource: TokenSource;
