@@ -277,6 +277,30 @@ export function getDefaultBranch(): string {
   return 'main';
 }
 
+export function getLocalBranches(): string[] {
+  const result = runGit(['branch', '--list', '--format=%(refname:short)']);
+  if (result.success) {
+    return result.stdout.split('\n').filter(b => b.trim().length > 0);
+  }
+  return [];
+}
+
+export function getUncommittedDiff(): string {
+  const stagedResult = runGit(['diff', '--cached']);
+  const unstagedResult = runGit(['diff']);
+
+  let diff = '';
+  if (stagedResult.stdout) {
+    diff += '# Staged Changes\n' + stagedResult.stdout;
+  }
+  if (unstagedResult.stdout) {
+    if (diff) diff += '\n\n';
+    diff += '# Unstaged Changes\n' + unstagedResult.stdout;
+  }
+
+  return diff || '(no changes)';
+}
+
 export function getBranchDiff(baseBranch?: string): string {
   if (!isGitRepository()) {
     return '';

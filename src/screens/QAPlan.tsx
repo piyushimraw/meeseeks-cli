@@ -3,7 +3,7 @@ import {Box, Text, useInput} from 'ink';
 import {useCopilot} from '../context/CopilotContext.js';
 import {useKnowledgeBase} from '../context/KnowledgeBaseContext.js';
 import {chatWithCopilot, type ChatResponse} from '../utils/copilot.js';
-import {getBranchDiff, getCurrentBranch, getDefaultBranch} from '../utils/git.js';
+import {getBranchDiff, getCurrentBranch, getDefaultBranch, getLocalBranches, getUncommittedDiff} from '../utils/git.js';
 import type {KnowledgeBase, SearchResult} from '../types/index.js';
 
 const palette = {
@@ -15,7 +15,35 @@ const palette = {
   dim: '#666666',
 };
 
-type QAPlanState = 'idle' | 'select-kb' | 'searching' | 'generating' | 'complete' | 'error';
+type QAPlanState = 'idle' | 'select-diff-mode' | 'select-branch' | 'loading-diff' | 'select-kb' | 'searching' | 'generating' | 'complete' | 'error';
+
+type DiffMode = 'branch' | 'uncommitted';
+
+const spinnerFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
+const LoadingSpinner: React.FC<{text: string; subtext?: string}> = ({text, subtext}) => {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFrame(prev => (prev + 1) % spinnerFrames.length);
+    }, 80);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Box flexDirection="column">
+      <Text color={palette.yellow}>
+        {spinnerFrames[frame]} {text}
+      </Text>
+      {subtext && (
+        <Box marginTop={1}>
+          <Text color={palette.dim}>{subtext}</Text>
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 interface QAPlanProps {
   onBack: () => void;
@@ -34,20 +62,48 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [modelInfo, setModelInfo] = useState<string | null>(null);
   const [usageInfo, setUsageInfo] = useState<ChatResponse['usage'] | null>(null);
+  const [diffMode, setDiffMode] = useState<DiffMode | null>(null);
+  const [diffModeIndex, setDiffModeIndex] = useState(0);
+  const [availableBranches, setAvailableBranches] = useState<string[]>([]);
+  const [selectedBranchIndex, setSelectedBranchIndex] = useState(0);
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
 
-  // Load git diff on mount
+  // Load branch info on mount
   useEffect(() => {
-    const diff = getBranchDiff();
-    setGitDiff(diff);
-
     const current = getCurrentBranch();
-    const base = getDefaultBranch();
-    if (current && current !== base) {
-      setBranchInfo(`${current} -> ${base}`);
-    } else {
-      setBranchInfo(current || 'unknown');
-    }
+    setBranchInfo(current || 'unknown');
   }, []);
+
+  const loadDiff = async (mode: DiffMode, branch?: string) => {
+    setState('loading-diff');
+    
+    // Simulate async operation (git operations are sync but we want the shimmer to show)
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    let diff: string;
+    let info: string;
+    
+    if (mode === 'uncommitted') {
+      diff = getUncommittedDiff();
+      info = `${branchInfo} (uncommitted changes)`;
+    } else if (branch) {
+      diff = getBranchDiff(branch);
+      info = `${branchInfo} -> ${branch}`;
+    } else {
+      diff = getBranchDiff();
+      info = `${branchInfo} -> ${getDefaultBranch()}`;
+    }
+    
+    setGitDiff(diff);
+    setBranchInfo(info);
+    
+    // Proceed to KB selection or generation
+    if (knowledgeBases.length > 0) {
+      setState('select-kb');
+    } else {
+      handleGenerate(null);
+    }
+  };
 
   const handleGenerate = async (kb: KnowledgeBase | null) => {
     const token = getToken();
@@ -125,24 +181,72 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
   };
 
   useInput((input, key) => {
+    // Handle back/escape navigation
     if (input === 'b' || key.escape) {
-      if (state === 'select-kb') {
+      if (state === 'select-diff-mode') {
         setState('idle');
+      } else if (state === 'select-branch') {
+        setState('select-diff-mode');
+      } else if (state === 'select-kb') {
+        setState('select-diff-mode');
       } else {
         onBack();
       }
       return;
     }
 
+    // Idle state - press 'g' to start
     if (state === 'idle' && input === 'g' && authState.isConnected) {
-      if (knowledgeBases.length > 0) {
-        setState('select-kb');
-      } else {
-        handleGenerate(null);
+      // Load available branches and go to diff mode selection
+      const currentBranch = getCurrentBranch();
+      const branches = getLocalBranches().filter(b => b !== currentBranch);
+      setAvailableBranches(branches);
+      setDiffModeIndex(0);
+      setState('select-diff-mode');
+      return;
+    }
+
+    // Diff mode selection
+    if (state === 'select-diff-mode') {
+      if (key.upArrow) {
+        setDiffModeIndex(prev => (prev > 0 ? prev - 1 : 1));
+      } else if (key.downArrow) {
+        setDiffModeIndex(prev => (prev < 1 ? prev + 1 : 0));
+      } else if (key.return) {
+        if (diffModeIndex === 0) {
+          // Compare with branch
+          setDiffMode('branch');
+          if (availableBranches.length > 0) {
+            setSelectedBranchIndex(0);
+            setState('select-branch');
+          } else {
+            // No other branches, use default branch
+            loadDiff('branch');
+          }
+        } else {
+          // Uncommitted changes
+          setDiffMode('uncommitted');
+          loadDiff('uncommitted');
+        }
       }
       return;
     }
 
+    // Branch selection
+    if (state === 'select-branch') {
+      if (key.upArrow) {
+        setSelectedBranchIndex(prev => (prev > 0 ? prev - 1 : availableBranches.length - 1));
+      } else if (key.downArrow) {
+        setSelectedBranchIndex(prev => (prev < availableBranches.length - 1 ? prev + 1 : 0));
+      } else if (key.return) {
+        const branch = availableBranches[selectedBranchIndex];
+        setSelectedBranch(branch);
+        loadDiff('branch', branch);
+      }
+      return;
+    }
+
+    // KB selection
     if (state === 'select-kb') {
       const options = knowledgeBases.length + 1; // +1 for "Skip" option
       if (key.upArrow) {
@@ -162,6 +266,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
       return;
     }
 
+    // Reset from complete/error state
     if ((state === 'complete' || state === 'error') && input === 'r') {
       setState('idle');
       setOutput(null);
@@ -171,6 +276,11 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
       setSearchResults([]);
       setModelInfo(null);
       setUsageInfo(null);
+      setDiffMode(null);
+      setDiffModeIndex(0);
+      setSelectedBranch(null);
+      setSelectedBranchIndex(0);
+      setGitDiff('');
     }
   });
 
@@ -228,6 +338,98 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
               </Box>
             )}
           </Box>
+        );
+
+      case 'select-diff-mode':
+        return (
+          <Box flexDirection="column">
+            <Text color={palette.cyan} bold>
+              Select Diff Source
+            </Text>
+            <Text color={palette.dim}>
+              Choose what code changes to analyze:
+            </Text>
+
+            <Box flexDirection="column" marginTop={1}>
+              <Box>
+                <Text color={diffModeIndex === 0 ? palette.cyan : undefined}>
+                  {diffModeIndex === 0 ? '> ' : '  '}
+                  Compare with branch
+                </Text>
+              </Box>
+              <Box marginLeft={4}>
+                <Text color={palette.dim}>
+                  Compare current branch ({branchInfo}) against another branch
+                </Text>
+              </Box>
+              
+              <Box marginTop={1}>
+                <Text color={diffModeIndex === 1 ? palette.cyan : undefined}>
+                  {diffModeIndex === 1 ? '> ' : '  '}
+                  Uncommitted changes
+                </Text>
+              </Box>
+              <Box marginLeft={4}>
+                <Text color={palette.dim}>
+                  Analyze staged and unstaged changes on current branch
+                </Text>
+              </Box>
+            </Box>
+
+            <Box marginTop={2}>
+              <Text color={palette.dim}>
+                Up/Down to select  Enter to confirm  Esc to go back
+              </Text>
+            </Box>
+          </Box>
+        );
+
+      case 'select-branch':
+        return (
+          <Box flexDirection="column">
+            <Text color={palette.cyan} bold>
+              Select Branch
+            </Text>
+            <Text color={palette.dim}>
+              Compare current branch ({branchInfo}) against:
+            </Text>
+
+            <Box flexDirection="column" marginTop={1}>
+              {availableBranches.map((branch, index) => (
+                <Box key={branch}>
+                  <Text color={index === selectedBranchIndex ? palette.cyan : undefined}>
+                    {index === selectedBranchIndex ? '> ' : '  '}
+                    {branch}
+                  </Text>
+                </Box>
+              ))}
+            </Box>
+
+            {availableBranches.length === 0 && (
+              <Box marginTop={1}>
+                <Text color={palette.yellow}>
+                  No other branches found. Using default branch.
+                </Text>
+              </Box>
+            )}
+
+            <Box marginTop={2}>
+              <Text color={palette.dim}>
+                Up/Down to select  Enter to confirm  Esc to go back
+              </Text>
+            </Box>
+          </Box>
+        );
+
+      case 'loading-diff':
+        return (
+          <LoadingSpinner 
+            text="Loading git diff..." 
+            subtext={diffMode === 'uncommitted' 
+              ? `Fetching uncommitted changes on: ${branchInfo}` 
+              : `Fetching changes: ${branchInfo} -> ${selectedBranch || getDefaultBranch()}`
+            }
+          />
         );
 
       case 'select-kb':
