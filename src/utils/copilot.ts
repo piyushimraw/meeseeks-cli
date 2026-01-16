@@ -28,6 +28,12 @@ export interface ChatResponse {
   success: boolean;
   content?: string;
   error?: string;
+  model?: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 /**
@@ -315,7 +321,12 @@ export async function chatWithCopilot(
     const content = data.choices?.[0]?.message?.content;
 
     if (content) {
-      return {success: true, content};
+      return {
+        success: true,
+        content,
+        model: data.model,
+        usage: data.usage,
+      };
     }
 
     return {success: false, error: 'No content in response'};

@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import {Box, Text, useInput} from 'ink';
 import {useCopilot} from '../context/CopilotContext.js';
 import {useKnowledgeBase} from '../context/KnowledgeBaseContext.js';
-import {chatWithCopilot} from '../utils/copilot.js';
+import {chatWithCopilot, type ChatResponse} from '../utils/copilot.js';
 import {getBranchDiff, getCurrentBranch, getDefaultBranch} from '../utils/git.js';
 import type {KnowledgeBase, SearchResult} from '../types/index.js';
 
@@ -32,6 +32,8 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
   const [gitDiff, setGitDiff] = useState<string>('');
   const [branchInfo, setBranchInfo] = useState<string>('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [modelInfo, setModelInfo] = useState<string | null>(null);
+  const [usageInfo, setUsageInfo] = useState<ChatResponse['usage'] | null>(null);
 
   // Load git diff on mount
   useEffect(() => {
@@ -113,6 +115,8 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
 
     if (result.success && result.content) {
       setOutput(result.content);
+      setModelInfo(result.model || null);
+      setUsageInfo(result.usage || null);
       setState('complete');
     } else {
       setError(result.error || 'Failed to generate QA plan');
@@ -165,6 +169,8 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
       setSelectedKB(null);
       setSelectedKBIndex(0);
       setSearchResults([]);
+      setModelInfo(null);
+      setUsageInfo(null);
     }
   });
 
@@ -295,7 +301,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
             )}
             <Box marginTop={1}>
               <Text color={palette.dim}>
-                Analyzing changes with GitHub Copilot
+                Analyzing changes with GitHub Copilot (model: gpt-4o)
               </Text>
             </Box>
           </Box>
@@ -320,6 +326,15 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
                 </Text>
               ))}
             </Box>
+            {(modelInfo || usageInfo) && (
+              <Box marginTop={1}>
+                <Text color={palette.dim}>
+                  {modelInfo && `Model: ${modelInfo}`}
+                  {modelInfo && usageInfo && ' | '}
+                  {usageInfo && `Tokens: ${usageInfo.prompt_tokens.toLocaleString()} (prompt) + ${usageInfo.completion_tokens.toLocaleString()} (completion) = ${usageInfo.total_tokens.toLocaleString()} total`}
+                </Text>
+              </Box>
+            )}
             <Box marginTop={2}>
               <Text color={palette.yellow}>Press 'r' to reset</Text>
             </Box>
