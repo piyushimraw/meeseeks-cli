@@ -1,7 +1,8 @@
 import React, {useState} from 'react';
 import {Box, Text, useApp, useInput} from 'ink';
 import type {Screen} from '../types/index.js';
-import {useGitHub} from '../context/GitHubContext.js';
+import {useCopilot} from '../context/CopilotContext.js';
+import {getSourceDisplayName} from '../utils/copilot.js';
 
 const palette = {
   cyan: '#00DFFF',
@@ -25,8 +26,8 @@ interface MenuItemData {
 
 const menuItems: MenuItemData[] = [
   {
-    label: 'Connect to GitHub',
-    value: 'github-connect',
+    label: 'Connect to Copilot',
+    value: 'copilot-connect',
     description: 'GitHub Copilot models',
     category: 'providers',
   },
@@ -40,7 +41,7 @@ const menuItems: MenuItemData[] = [
 
 export const Menu: React.FC<MenuProps> = ({onSelect}) => {
   const {exit} = useApp();
-  const {authState} = useGitHub();
+  const {authState} = useCopilot();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useInput((input, key) => {
@@ -67,7 +68,7 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
   const renderItem = (item: MenuItemData) => {
     const globalIndex = menuItems.indexOf(item);
     const isSelected = globalIndex === selectedIndex;
-    const isGitHub = item.value === 'github-connect';
+    const isCopilot = item.value === 'copilot-connect';
 
     return (
       <Box key={item.value}>
@@ -75,15 +76,15 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
           {isSelected ? '> ' : '  '}
           {item.label}
         </Text>
-        {isGitHub && authState.isConnected ? (
-          <Text color={palette.green}> [Connected: {authState.username}]</Text>
+        {isCopilot && authState.isConnected ? (
+          <Text color={palette.green}>
+            {' '}
+            [Connected: {getSourceDisplayName(authState.tokenSource || 'unknown')}]
+          </Text>
         ) : (
           item.description && (
             <Text color={palette.dim}> ({item.description})</Text>
           )
-        )}
-        {isGitHub && authState.isConnected && authState.hasCopilotAccess && (
-          <Text color={palette.green}> [Copilot]</Text>
         )}
       </Box>
     );

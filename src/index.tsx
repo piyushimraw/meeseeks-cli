@@ -3,9 +3,9 @@ import React, {useState} from 'react';
 import {Box, Text, render} from 'ink';
 import {meeseeksArt} from './ascii.js';
 import {Menu} from './components/Menu.js';
-import {GitHubConnect} from './screens/GitHubConnect.js';
+import {CopilotConnect} from './screens/CopilotConnect.js';
 import {QAPlan} from './screens/QAPlan.js';
-import {GitHubProvider} from './context/GitHubContext.js';
+import {CopilotProvider} from './context/CopilotContext.js';
 import type {Screen} from './types/index.js';
 
 const palette = {
@@ -28,8 +28,8 @@ const AppContent = () => {
 
   const renderScreen = () => {
     switch (currentScreen) {
-      case 'github-connect':
-        return <GitHubConnect onBack={handleBack} />;
+      case 'copilot-connect':
+        return <CopilotConnect onBack={handleBack} />;
       case 'qa-plan':
         return <QAPlan onBack={handleBack} />;
       case 'main':
@@ -72,9 +72,9 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <GitHubProvider>
+    <CopilotProvider>
       <AppContent />
-    </GitHubProvider>
+    </CopilotProvider>
   );
 };
 

@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'github-connect' | 'qa-plan';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan';
 
 export interface MenuItem {
   label: string;
@@ -10,22 +10,9 @@ export interface MenuCategory {
   items: MenuItem[];
 }
 
-export interface GitHubUser {
-  login: string;
-  id: number;
-  name?: string;
-  email?: string;
-  avatar_url?: string;
-}
+export type TokenSource = 'cli' | 'vscode' | 'jetbrains' | 'unknown';
 
-export interface CopilotVerificationResult {
-  hasAccess: boolean;
-  error?: string;
-}
-
-export interface GitHubVerificationResult {
-  success: boolean;
-  user?: GitHubUser;
-  copilot?: CopilotVerificationResult;
-  error?: string;
+export interface CopilotConfig {
+  tokenSource: TokenSource;
+  lastVerified?: string;
 }

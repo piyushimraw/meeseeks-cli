@@ -1,15 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import type {TokenSource} from '../types/index.js';
 
 const CONFIG_DIR = path.join(os.homedir(), '.meeseeks');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
 export interface MeeseeksConfig {
-  github?: {
-    pat?: string;
-    username?: string;
-    hasCopilotAccess?: boolean;
+  copilot?: {
+    tokenSource: TokenSource;
     lastVerified?: string;
   };
 }
@@ -38,33 +37,27 @@ export function saveConfig(config: MeeseeksConfig): void {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
 }
 
-export function saveGitHubPAT(
-  pat: string,
-  username: string,
-  hasCopilotAccess: boolean,
-): void {
+export function saveCopilotConfig(tokenSource: TokenSource): void {
   const config = loadConfig();
-  config.github = {
-    pat,
-    username,
-    hasCopilotAccess,
+  config.copilot = {
+    tokenSource,
     lastVerified: new Date().toISOString(),
   };
   saveConfig(config);
 }
 
-export function getGitHubConfig(): MeeseeksConfig['github'] | undefined {
+export function getCopilotConfig(): MeeseeksConfig['copilot'] | undefined {
   const config = loadConfig();
-  return config.github;
+  return config.copilot;
 }
 
-export function clearGitHubConfig(): void {
+export function clearCopilotConfig(): void {
   const config = loadConfig();
-  delete config.github;
+  delete config.copilot;
   saveConfig(config);
 }
 
-export function isGitHubConnected(): boolean {
-  const github = getGitHubConfig();
-  return !!(github?.pat && github?.username);
+export function isCopilotConnected(): boolean {
+  const copilot = getCopilotConfig();
+  return !!copilot?.tokenSource;
 }
