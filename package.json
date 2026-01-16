@@ -1,0 +1,24 @@
+{
+  "name": "meeseeks",
+  "version": "1.0.0",
+  "description": "Meeseeks CLI welcome screen",
+  "type": "module",
+  "bin": {
+    "meeseeks": "dist/index.js"
+  },
+  "scripts": {
+    "start": "tsx src/index.tsx",
+    "build": "tsc",
+    "meeseeks": "node dist/index.js"
+  },
+  "dependencies": {
+    "ink": "^5.0.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "@types/react": "^18.3.3",
+    "tsx": "^4.19.1",
+    "typescript": "^5.5.4"
+  }
+}
