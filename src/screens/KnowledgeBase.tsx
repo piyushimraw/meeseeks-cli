@@ -21,6 +21,7 @@ type ViewState =
   | 'detail'
   | 'add-source'
   | 'crawling'
+  | 'indexing'
   | 'confirm-delete';
 
 interface KnowledgeBaseProps {
@@ -32,11 +33,16 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
     knowledgeBases,
     isLoading,
     crawlState,
+    indexState,
     createKnowledgeBase,
     deleteKnowledgeBase,
     addSource,
     crawlSource,
     removeSource,
+    indexKB,
+    isIndexed,
+    getIndexStats,
+    getKB,
   } = useKnowledgeBase();
 
   const [viewState, setViewState] = useState<ViewState>('list');
@@ -53,7 +59,7 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
   const [error, setError] = useState<string | null>(null);
 
   useInput((input, key) => {
-    if (crawlState.isActive) return;
+    if (crawlState.isActive || indexState.isActive) return;
 
     // Global back navigation
     if (input === 'b' || key.escape) {
@@ -115,20 +121,44 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
         if (source && source.status !== 'crawling') {
           setViewState('crawling');
           crawlSource(selectedKB.id, source.id).then(() => {
-            // Refresh the selected KB
-            const updatedKBs = knowledgeBases.find(kb => kb.id === selectedKB.id);
-            if (updatedKBs) {
-              setSelectedKB(updatedKBs);
+            // Refresh the selected KB from filesystem (not stale state)
+            const updatedKB = getKB(selectedKB.id);
+            if (updatedKB) {
+              setSelectedKB(updatedKB);
             }
             setViewState('detail');
           });
         }
+      } else if (input === 'i') {
+        // Index the knowledge base
+        setError(null);
+        const freshKB = getKB(selectedKB.id);
+        if (!freshKB) {
+          setError('Could not load KB data');
+          return;
+        }
+        if (freshKB.totalPages === 0) {
+          setError('No pages to index. Crawl a source first.');
+          return;
+        }
+        setViewState('indexing');
+        indexKB(selectedKB.id).then(() => {
+          // Refresh the selected KB from filesystem
+          const updatedKB = getKB(selectedKB.id);
+          if (updatedKB) {
+            setSelectedKB(updatedKB);
+          }
+          setViewState('detail');
+        }).catch((err) => {
+          setError(`Indexing failed: ${err?.message || err}`);
+          setViewState('detail');
+        });
       } else if (input === 'r' && selectedKB.sources.length > 0) {
         const source = selectedKB.sources[selectedSourceIndex];
         if (source) {
           removeSource(selectedKB.id, source.id);
-          // Refresh selected KB from the updated list
-          const updated = knowledgeBases.find(kb => kb.id === selectedKB.id);
+          // Refresh selected KB from filesystem
+          const updated = getKB(selectedKB.id);
           if (updated) {
             setSelectedKB(updated);
             if (selectedSourceIndex >= updated.sources.length) {
@@ -168,8 +198,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
           setSelectedKB(kb);
           setViewState('crawling');
           crawlSource(kb.id, source.id).then(() => {
-            // Refresh the selected KB
-            const updatedKB = knowledgeBases.find(k => k.id === kb.id);
+            // Refresh the selected KB from filesystem
+            const updatedKB = getKB(kb.id);
             if (updatedKB) {
               setSelectedKB(updatedKB);
             }
@@ -223,8 +253,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
     if (selectedKB) {
       const source = addSource(selectedKB.id, newUrl);
       if (source) {
-        // Refresh selected KB
-        const updated = knowledgeBases.find(kb => kb.id === selectedKB.id);
+        // Refresh selected KB from filesystem
+        const updated = getKB(selectedKB.id);
         if (updated) {
           setSelectedKB(updated);
         }
@@ -350,12 +380,33 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
   const renderDetail = () => {
     if (!selectedKB) return null;
 
+    const indexStats = getIndexStats(selectedKB.id);
+    const indexed = isIndexed(selectedKB.id);
+
     return (
       <Box flexDirection="column">
         <Text color={palette.cyan} bold>{selectedKB.name}</Text>
         <Text color={palette.dim}>
           Created: {new Date(selectedKB.createdAt).toLocaleDateString()} | Depth: {selectedKB.crawlDepth} | Pages: {selectedKB.totalPages}
         </Text>
+
+        {/* Index Status */}
+        <Box marginTop={1}>
+          {indexed ? (
+            <Text color={palette.green}>
+              Indexed: {indexStats?.chunkCount || 0} chunks ({indexStats?.mode === 'transformer' ? 'neural' : 'TF-IDF'})
+              {indexStats?.indexedAt && ` | Last: ${new Date(indexStats.indexedAt).toLocaleDateString()}`}
+            </Text>
+          ) : selectedKB.totalPages > 0 ? (
+            <Text color={palette.yellow}>
+              Not indexed - Press 'i' to index for semantic search
+            </Text>
+          ) : (
+            <Text color={palette.dim}>
+              No pages to index
+            </Text>
+          )}
+        </Box>
 
         <Box marginTop={1}>
           <Text color={palette.yellow} bold>Sources</Text>
@@ -399,9 +450,15 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
           </Box>
         )}
 
+        {error && (
+          <Box marginTop={1}>
+            <Text color={palette.red}>{error}</Text>
+          </Box>
+        )}
+
         <Box marginTop={2}>
           <Text color={palette.dim}>
-            a Add source  c Crawl selected  r Remove selected  b Back
+            a Add source  c Crawl selected  i Index  r Remove selected  b Back
           </Text>
         </Box>
       </Box>
@@ -452,6 +509,39 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
     </Box>
   );
 
+  const renderIndexing = () => {
+    const phaseLabels = {
+      idle: 'Preparing...',
+      chunking: 'Chunking pages...',
+      embedding: 'Generating embeddings...',
+      saving: 'Saving index...',
+    };
+
+    return (
+      <Box flexDirection="column">
+        <Text color={palette.yellow} bold>Indexing Knowledge Base...</Text>
+        <Box marginTop={1}>
+          <Text color={palette.cyan}>
+            {phaseLabels[indexState.phase]}
+          </Text>
+        </Box>
+        {indexState.total > 0 && (
+          <Box marginTop={1}>
+            <Text color={palette.dim}>
+              Progress: {indexState.progress}/{indexState.total}
+              {indexState.phase === 'chunking' ? ' pages' : ' chunks'}
+            </Text>
+          </Box>
+        )}
+        <Box marginTop={1}>
+          <Text color={palette.dim}>
+            {indexState.phase === 'embedding' ? 'This may take a moment for the first run (downloading model)...' : 'Please wait...'}
+          </Text>
+        </Box>
+      </Box>
+    );
+  };
+
   const renderConfirmDelete = () => (
     <Box flexDirection="column">
       <Text color={palette.red} bold>Delete Knowledge Base?</Text>
@@ -483,6 +573,8 @@ export const KnowledgeBase: React.FC<KnowledgeBaseProps> = ({onBack}) => {
         return renderAddSource();
       case 'crawling':
         return renderCrawling();
+      case 'indexing':
+        return renderIndexing();
       case 'confirm-delete':
         return renderConfirmDelete();
       default:

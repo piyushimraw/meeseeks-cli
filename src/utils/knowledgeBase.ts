@@ -2,8 +2,16 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
-import type {KnowledgeBase, KnowledgeBaseSource, PageContent, CrawlProgress} from '../types/index.js';
+import type {KnowledgeBase, KnowledgeBaseSource, PageContent, CrawlProgress, IndexProgress, SearchResult} from '../types/index.js';
 import {crawlWebsite, isValidUrl} from './crawler.js';
+import {
+  indexKnowledgeBase as indexKB,
+  searchKnowledgeBase as searchKB,
+  isIndexed as checkIndexed,
+  getIndexStats,
+  clearIndex,
+  formatSearchResultsAsContext,
+} from './rag.js';
 
 const KB_DIR = path.join(os.homedir(), '.meeseeks', 'knowledge');
 
@@ -315,4 +323,36 @@ export function loadKnowledgeBaseContent(kbId: string): string {
   }
 
   return contentParts.join('\n---\n');
+}
+
+// RAG-related exports
+export async function indexKnowledgeBase(
+  kbId: string,
+  onProgress?: (progress: IndexProgress) => void
+): Promise<{success: boolean; chunkCount: number; error?: string}> {
+  return indexKB(kbId, onProgress);
+}
+
+export async function searchKnowledgeBase(
+  kbId: string,
+  query: string,
+  topK: number = 5
+): Promise<SearchResult[]> {
+  return searchKB(kbId, query, topK);
+}
+
+export function isKnowledgeBaseIndexed(kbId: string): boolean {
+  return checkIndexed(kbId);
+}
+
+export function getKnowledgeBaseIndexStats(kbId: string): {indexed: boolean; chunkCount: number; indexedAt?: string; mode?: string} | null {
+  return getIndexStats(kbId);
+}
+
+export function clearKnowledgeBaseIndex(kbId: string): void {
+  return clearIndex(kbId);
+}
+
+export function formatKBSearchResultsAsContext(results: SearchResult[]): string {
+  return formatSearchResultsAsContext(results);
 }

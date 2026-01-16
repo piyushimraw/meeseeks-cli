@@ -55,3 +55,31 @@ export interface CrawlProgress {
   total: number;
   currentUrl: string;
 }
+
+// RAG Types
+export interface Chunk {
+  id: number;
+  pageHash: string;
+  pageUrl: string;
+  pageTitle: string;
+  text: string;
+  startIdx: number;
+  endIdx: number;
+}
+
+export interface SearchResult {
+  chunk: Chunk;
+  score: number;
+}
+
+export interface ChunkIndex {
+  model: string;
+  dimensions: number;
+  chunks: Chunk[];
+}
+
+export interface IndexProgress {
+  phase: 'chunking' | 'embedding' | 'saving';
+  current: number;
+  total: number;
+}

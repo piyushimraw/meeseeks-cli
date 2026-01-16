@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useState, useEffect, useCallback} from 'react';
-import type {KnowledgeBase, KnowledgeBaseSource, CrawlProgress} from '../types/index.js';
+import type {KnowledgeBase, KnowledgeBaseSource, CrawlProgress, IndexProgress, SearchResult} from '../types/index.js';
 import {
   listKnowledgeBases,
   getKnowledgeBase,
@@ -9,6 +9,11 @@ import {
   removeSource as removeSourceFromKB,
   crawlSource as crawlKBSource,
   loadKnowledgeBaseContent as loadKBContent,
+  indexKnowledgeBase as indexKBContent,
+  searchKnowledgeBase as searchKBContent,
+  isKnowledgeBaseIndexed,
+  getKnowledgeBaseIndexStats,
+  formatKBSearchResultsAsContext,
 } from '../utils/knowledgeBase.js';
 
 export interface CrawlState {
@@ -20,10 +25,19 @@ export interface CrawlState {
   currentUrl: string;
 }
 
+export interface IndexState {
+  isActive: boolean;
+  kbId?: string;
+  phase: 'idle' | 'chunking' | 'embedding' | 'saving';
+  progress: number;
+  total: number;
+}
+
 interface KnowledgeBaseContextType {
   knowledgeBases: KnowledgeBase[];
   isLoading: boolean;
   crawlState: CrawlState;
+  indexState: IndexState;
   refresh: () => void;
   createKnowledgeBase: (name: string, crawlDepth: number) => KnowledgeBase;
   deleteKnowledgeBase: (id: string) => boolean;
@@ -32,6 +46,11 @@ interface KnowledgeBaseContextType {
   crawlSource: (kbId: string, sourceId: string) => Promise<{success: boolean; pageCount: number; error?: string}>;
   getKBContent: (kbId: string) => string;
   getKB: (kbId: string) => KnowledgeBase | null;
+  indexKB: (kbId: string) => Promise<{success: boolean; chunkCount: number; error?: string}>;
+  searchKB: (kbId: string, query: string, topK?: number) => Promise<SearchResult[]>;
+  isIndexed: (kbId: string) => boolean;
+  getIndexStats: (kbId: string) => {indexed: boolean; chunkCount: number; indexedAt?: string; mode?: string} | null;
+  formatSearchContext: (results: SearchResult[]) => string;
 }
 
 const KnowledgeBaseContext = createContext<KnowledgeBaseContextType | undefined>(undefined);
@@ -44,6 +63,12 @@ export const KnowledgeBaseProvider: React.FC<{children: React.ReactNode}> = ({ch
     progress: 0,
     total: 0,
     currentUrl: '',
+  });
+  const [indexState, setIndexState] = useState<IndexState>({
+    isActive: false,
+    phase: 'idle',
+    progress: 0,
+    total: 0,
   });
 
   const refresh = useCallback(() => {
@@ -131,12 +156,67 @@ export const KnowledgeBaseProvider: React.FC<{children: React.ReactNode}> = ({ch
     return getKnowledgeBase(kbId);
   }, []);
 
+  const indexKB = useCallback(async (
+    kbId: string
+  ): Promise<{success: boolean; chunkCount: number; error?: string}> => {
+    setIndexState({
+      isActive: true,
+      kbId,
+      phase: 'chunking',
+      progress: 0,
+      total: 0,
+    });
+
+    const onProgress = (progress: IndexProgress) => {
+      setIndexState(prev => ({
+        ...prev,
+        phase: progress.phase,
+        progress: progress.current,
+        total: progress.total,
+      }));
+    };
+
+    try {
+      const result = await indexKBContent(kbId, onProgress);
+      refresh();
+      return result;
+    } finally {
+      setIndexState({
+        isActive: false,
+        phase: 'idle',
+        progress: 0,
+        total: 0,
+      });
+    }
+  }, [refresh]);
+
+  const searchKB = useCallback(async (
+    kbId: string,
+    query: string,
+    topK: number = 5
+  ): Promise<SearchResult[]> => {
+    return searchKBContent(kbId, query, topK);
+  }, []);
+
+  const isIndexed = useCallback((kbId: string): boolean => {
+    return isKnowledgeBaseIndexed(kbId);
+  }, []);
+
+  const getIndexStats = useCallback((kbId: string): {indexed: boolean; chunkCount: number; indexedAt?: string} | null => {
+    return getKnowledgeBaseIndexStats(kbId);
+  }, []);
+
+  const formatSearchContext = useCallback((results: SearchResult[]): string => {
+    return formatKBSearchResultsAsContext(results);
+  }, []);
+
   return (
     <KnowledgeBaseContext.Provider
       value={{
         knowledgeBases,
         isLoading,
         crawlState,
+        indexState,
         refresh,
         createKnowledgeBase,
         deleteKnowledgeBase,
@@ -145,6 +225,11 @@ export const KnowledgeBaseProvider: React.FC<{children: React.ReactNode}> = ({ch
         crawlSource,
         getKBContent,
         getKB,
+        indexKB,
+        searchKB,
+        isIndexed,
+        getIndexStats,
+        formatSearchContext,
       }}
     >
       {children}

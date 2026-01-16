@@ -4,7 +4,7 @@ import {useCopilot} from '../context/CopilotContext.js';
 import {useKnowledgeBase} from '../context/KnowledgeBaseContext.js';
 import {chatWithCopilot} from '../utils/copilot.js';
 import {getBranchDiff, getCurrentBranch, getDefaultBranch} from '../utils/git.js';
-import type {KnowledgeBase} from '../types/index.js';
+import type {KnowledgeBase, SearchResult} from '../types/index.js';
 
 const palette = {
   cyan: '#00DFFF',
@@ -15,7 +15,7 @@ const palette = {
   dim: '#666666',
 };
 
-type QAPlanState = 'idle' | 'select-kb' | 'generating' | 'complete' | 'error';
+type QAPlanState = 'idle' | 'select-kb' | 'searching' | 'generating' | 'complete' | 'error';
 
 interface QAPlanProps {
   onBack: () => void;
@@ -23,7 +23,7 @@ interface QAPlanProps {
 
 export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
   const {authState, getToken} = useCopilot();
-  const {knowledgeBases, getKBContent} = useKnowledgeBase();
+  const {knowledgeBases, getKBContent, searchKB, isIndexed, formatSearchContext} = useKnowledgeBase();
   const [state, setState] = useState<QAPlanState>('idle');
   const [output, setOutput] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +31,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
   const [selectedKB, setSelectedKB] = useState<KnowledgeBase | null>(null);
   const [gitDiff, setGitDiff] = useState<string>('');
   const [branchInfo, setBranchInfo] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   // Load git diff on mount
   useEffect(() => {
@@ -54,14 +55,35 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
       return;
     }
 
-    setState('generating');
     setError(null);
 
-    // Get KB content if selected
+    // Get KB content using RAG if indexed, otherwise use full content
     let kbContent = '';
     if (kb) {
-      kbContent = getKBContent(kb.id);
+      const kbIndexed = isIndexed(kb.id);
+
+      if (kbIndexed) {
+        // Use RAG search - search with a query derived from the git diff
+        setState('searching');
+
+        // Create a search query from the git diff summary
+        const searchQuery = `Code changes: ${gitDiff.slice(0, 500)}`;
+
+        try {
+          const results = await searchKB(kb.id, searchQuery, 10);
+          setSearchResults(results);
+          kbContent = formatSearchContext(results);
+        } catch (err) {
+          // Fall back to full content on error
+          kbContent = getKBContent(kb.id);
+        }
+      } else {
+        // Fall back to full content if not indexed
+        kbContent = getKBContent(kb.id);
+      }
     }
+
+    setState('generating');
 
     // Build the system prompt
     let systemPrompt = 'You are a QA engineer assistant. Generate comprehensive, actionable test plans for code changes.';
@@ -142,6 +164,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
       setError(null);
       setSelectedKB(null);
       setSelectedKBIndex(0);
+      setSearchResults([]);
     }
   });
 
@@ -239,6 +262,25 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
           </Box>
         );
 
+      case 'searching':
+        return (
+          <Box flexDirection="column">
+            <Text color={palette.yellow}>Searching knowledge base...</Text>
+            {selectedKB && (
+              <Box marginTop={1}>
+                <Text color={palette.dim}>
+                  Finding relevant context from: {selectedKB.name}
+                </Text>
+              </Box>
+            )}
+            <Box marginTop={1}>
+              <Text color={palette.dim}>
+                Using semantic search to find relevant documentation
+              </Text>
+            </Box>
+          </Box>
+        );
+
       case 'generating':
         return (
           <Box flexDirection="column">
@@ -247,6 +289,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
               <Box marginTop={1}>
                 <Text color={palette.dim}>
                   Using knowledge base: {selectedKB.name}
+                  {searchResults.length > 0 && ` (${searchResults.length} relevant chunks)`}
                 </Text>
               </Box>
             )}
@@ -267,6 +310,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
             {selectedKB && (
               <Text color={palette.dim}>
                 Based on: {selectedKB.name}
+                {searchResults.length > 0 && ` (using ${searchResults.length} relevant chunks via RAG)`}
               </Text>
             )}
             <Box marginTop={1} flexDirection="column">
