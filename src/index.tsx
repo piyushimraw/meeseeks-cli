@@ -5,6 +5,7 @@ import {meeseeksArt} from './ascii.js';
 import {Menu} from './components/Menu.js';
 import {CopilotConnect} from './screens/CopilotConnect.js';
 import {QAPlan} from './screens/QAPlan.js';
+import {GitChanges} from './screens/GitChanges.js';
 import {CopilotProvider} from './context/CopilotContext.js';
 import type {Screen} from './types/index.js';
 
@@ -32,6 +33,8 @@ const AppContent = () => {
         return <CopilotConnect onBack={handleBack} />;
       case 'qa-plan':
         return <QAPlan onBack={handleBack} />;
+      case 'git-changes':
+        return <GitChanges onBack={handleBack} />;
       case 'main':
       default:
         return <Menu onSelect={handleSelect} />;

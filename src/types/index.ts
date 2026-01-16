@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'copilot-connect' | 'qa-plan';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes';
 
 export interface MenuItem {
   label: string;

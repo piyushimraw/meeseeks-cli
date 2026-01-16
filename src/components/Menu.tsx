@@ -21,7 +21,7 @@ interface MenuItemData {
   label: string;
   value: Screen;
   description?: string;
-  category: 'providers' | 'agents';
+  category: 'providers' | 'agents' | 'tools';
 }
 
 const menuItems: MenuItemData[] = [
@@ -36,6 +36,12 @@ const menuItems: MenuItemData[] = [
     value: 'qa-plan',
     description: 'Diff branch & generate test plan',
     category: 'agents',
+  },
+  {
+    label: 'View Git Changes',
+    value: 'git-changes',
+    description: 'See modified files in project',
+    category: 'tools',
   },
 ];
 
@@ -64,6 +70,7 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
 
   const providerItems = menuItems.filter((item) => item.category === 'providers');
   const agentItems = menuItems.filter((item) => item.category === 'agents');
+  const toolItems = menuItems.filter((item) => item.category === 'tools');
 
   const renderItem = (item: MenuItemData) => {
     const globalIndex = menuItems.indexOf(item);
@@ -117,8 +124,18 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
             AGENTS
           </Text>
         </Box>
-        <Box flexDirection="column" marginLeft={2} marginBottom={1}>
+        <Box flexDirection="column" marginLeft={2}>
           {agentItems.map(renderItem)}
+        </Box>
+
+        {/* Tools Section */}
+        <Box marginTop={1}>
+          <Text color={palette.yellow} bold>
+            TOOLS
+          </Text>
+        </Box>
+        <Box flexDirection="column" marginLeft={2} marginBottom={1}>
+          {toolItems.map(renderItem)}
         </Box>
       </Box>
 
