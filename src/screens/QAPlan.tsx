@@ -4,6 +4,8 @@ import {useCopilot} from '../context/CopilotContext.js';
 import {useKnowledgeBase} from '../context/KnowledgeBaseContext.js';
 import {chatWithCopilot, type ChatResponse} from '../utils/copilot.js';
 import {getBranchDiff, getCurrentBranch, getDefaultBranch, getLocalBranches, getUncommittedDiff} from '../utils/git.js';
+import TextInput from 'ink-text-input';
+import {saveQAPlan, generateDefaultFilename} from '../utils/qaPlan.js';
 import type {KnowledgeBase, SearchResult} from '../types/index.js';
 
 const palette = {
@@ -15,7 +17,7 @@ const palette = {
   dim: '#666666',
 };
 
-type QAPlanState = 'idle' | 'select-diff-mode' | 'select-branch' | 'loading-diff' | 'select-kb' | 'searching' | 'generating' | 'complete' | 'error';
+type QAPlanState = 'idle' | 'select-diff-mode' | 'select-branch' | 'loading-diff' | 'select-kb' | 'searching' | 'generating' | 'complete' | 'error' | 'input-filename' | 'saving' | 'saved';
 
 type DiffMode = 'branch' | 'uncommitted';
 
@@ -67,6 +69,8 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
   const [selectedBranchIndex, setSelectedBranchIndex] = useState(0);
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
+  const [filename, setFilename] = useState('');
+  const [savedPath, setSavedPath] = useState<string | null>(null);
 
   // Load branch info on mount
   useEffect(() => {
@@ -180,6 +184,37 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
     }
   };
 
+  const handleFilenameSubmit = () => {
+    if (!filename.trim()) {
+      setError('Filename is required');
+      return;
+    }
+    if (!output) {
+      setError('No QA plan to save');
+      return;
+    }
+
+    setState('saving');
+    setError(null);
+
+    // Small delay for visual feedback
+    setTimeout(() => {
+      const result = saveQAPlan(output, filename, {
+        branchInfo,
+        model: modelInfo,
+        knowledgeBase: selectedKB?.name || null,
+      });
+
+      if (result.success && result.path) {
+        setSavedPath(result.path);
+        setState('saved');
+      } else {
+        setError(result.error || 'Failed to save file');
+        setState('complete');
+      }
+    }, 300);
+  };
+
   useInput((input, key) => {
     // Handle back/escape navigation
     if (input === 'b' || key.escape) {
@@ -189,6 +224,12 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
         setState('select-diff-mode');
       } else if (state === 'select-kb') {
         setState('select-diff-mode');
+      } else if (state === 'input-filename') {
+        setState('complete');
+        setError(null);
+      } else if (state === 'saved') {
+        setState('complete');
+        setSavedPath(null);
       } else {
         onBack();
       }
@@ -266,6 +307,14 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
       return;
     }
 
+    // Save from complete state
+    if (state === 'complete' && input === 's' && output) {
+      const defaultName = generateDefaultFilename(branchInfo);
+      setFilename(defaultName);
+      setState('input-filename');
+      return;
+    }
+
     // Reset from complete/error state
     if ((state === 'complete' || state === 'error') && input === 'r') {
       setState('idle');
@@ -281,6 +330,8 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
       setSelectedBranch(null);
       setSelectedBranchIndex(0);
       setGitDiff('');
+      setFilename('');
+      setSavedPath(null);
     }
   });
 
@@ -538,7 +589,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
               </Box>
             )}
             <Box marginTop={2}>
-              <Text color={palette.yellow}>Press 'r' to reset</Text>
+              <Text color={palette.yellow}>Press 's' to save  'r' to reset</Text>
             </Box>
           </Box>
         );
@@ -554,6 +605,58 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
             </Box>
             <Box marginTop={2}>
               <Text color={palette.yellow}>Press 'r' to retry</Text>
+            </Box>
+          </Box>
+        );
+
+      case 'input-filename':
+        return (
+          <Box flexDirection="column">
+            <Text color={palette.green} bold>
+              Save QA Plan
+            </Text>
+            <Text color={palette.dim}>
+              Enter a name for the QA plan file:
+            </Text>
+            <Box marginTop={1}>
+              <Text color={palette.yellow}>Filename: </Text>
+              <TextInput
+                value={filename}
+                onChange={setFilename}
+                onSubmit={handleFilenameSubmit}
+                placeholder="my-feature-qa-plan"
+              />
+              <Text color={palette.dim}>.md</Text>
+            </Box>
+            {error && (
+              <Box marginTop={1}>
+                <Text color={palette.red}>{error}</Text>
+              </Box>
+            )}
+            <Box marginTop={2}>
+              <Text color={palette.dim}>Enter to save  Esc to cancel</Text>
+            </Box>
+          </Box>
+        );
+
+      case 'saving':
+        return (
+          <Box flexDirection="column">
+            <Text color={palette.yellow}>Saving QA plan...</Text>
+          </Box>
+        );
+
+      case 'saved':
+        return (
+          <Box flexDirection="column">
+            <Text color={palette.green} bold>
+              QA Plan Saved!
+            </Text>
+            <Box marginTop={1}>
+              <Text color={palette.dim}>File: {savedPath}</Text>
+            </Box>
+            <Box marginTop={2}>
+              <Text color={palette.yellow}>Press Esc to continue</Text>
             </Box>
           </Box>
         );
