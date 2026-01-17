@@ -11,10 +11,10 @@
     "build": "tsc",
     "meeseeks": "node dist/index.js",
     "link": "npm run build && npm link",
-    "bundle": "esbuild src/index.tsx --bundle --platform=node --target=node20 --format=esm --outfile=dist/bundle.mjs --external:react-devtools-core --external:@xenova/transformers --external:onnxruntime-node --banner:js='#!/usr/bin/env node'",
-    "package": "bun build src/index.tsx --compile --outfile bin/meeseeks --external @xenova/transformers --external onnxruntime-node",
-    "package:linux": "bun build src/index.tsx --compile --target=bun-linux-x64 --outfile bin/meeseeks-linux --external @xenova/transformers --external onnxruntime-node",
-    "package:win": "bun build src/index.tsx --compile --target=bun-windows-x64 --outfile bin/meeseeks.exe --external @xenova/transformers --external onnxruntime-node",
+    "bundle": "esbuild src/index.tsx --bundle --platform=node --target=node20 --format=esm --outfile=dist/bundle.mjs --external:react-devtools-core  --banner:js='#!/usr/bin/env node'",
+    "package": "bun build src/index.tsx --compile --outfile bin/meeseeks",
+    "package:linux": "bun build src/index.tsx --compile --target=bun-linux-x64 --outfile bin/meeseeks-linux",
+    "package:win": "bun build src/index.tsx --compile --target=bun-windows-x64 --outfile bin/meeseeks.exe",
     "install-local": "npm run package && grep -q \"$PWD/bin\" ~/.zshrc || echo \"\\nexport PATH=\\\"$PWD/bin:\\$PATH\\\"\" >> ~/.zshrc && echo \"Added to PATH. Run: source ~/.zshrc\""
   },
   "dependencies": {
