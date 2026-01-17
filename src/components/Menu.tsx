@@ -44,6 +44,12 @@ const menuItems: MenuItemData[] = [
     category: 'agents',
   },
   {
+    label: 'Test Watcher',
+    value: 'test-watcher',
+    description: 'Auto-generate tests on file changes',
+    category: 'agents',
+  },
+  {
     label: 'View Git Changes',
     value: 'git-changes',
     description: 'See modified files in project',

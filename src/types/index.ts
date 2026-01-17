@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher';
 
 export interface MenuItem {
   label: string;
@@ -89,4 +89,37 @@ export interface IndexProgress {
   phase: 'chunking' | 'embedding' | 'saving';
   current: number;
   total: number;
+}
+
+// Test Watcher Types
+export interface WatcherConfig {
+  globPattern: string;
+  outputPattern: 'colocated' | 'separate';
+  outputDir?: string;  // Only used when outputPattern is 'separate'
+}
+
+export interface FileChangeEvent {
+  type: 'add' | 'change' | 'unlink';
+  path: string;
+  timestamp: string;
+}
+
+export interface TestRule {
+  source: 'meeseeks' | 'agents' | 'claude';
+  content: string;
+  filePath: string;
+}
+
+export interface GeneratedTest {
+  sourceFile: string;
+  testFile: string;
+  content: string;
+  generatedAt: string;
+}
+
+export interface WatcherStatus {
+  isWatching: boolean;
+  watchedFiles: number;
+  lastEvent?: FileChangeEvent;
+  lastGenerated?: GeneratedTest;
 }

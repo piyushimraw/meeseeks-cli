@@ -8,6 +8,7 @@ import {QAPlan} from './screens/QAPlan.js';
 import {GitChanges} from './screens/GitChanges.js';
 import {KnowledgeBase} from './screens/KnowledgeBase.js';
 import {ModelSelect} from './screens/ModelSelect.js';
+import {TestWatcher} from './screens/TestWatcher.js';
 import {CopilotProvider} from './context/CopilotContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
 import type {Screen} from './types/index.js';
@@ -42,6 +43,8 @@ const AppContent = () => {
         return <KnowledgeBase onBack={handleBack} />;
       case 'model-select':
         return <ModelSelect onBack={handleBack} />;
+      case 'test-watcher':
+        return <TestWatcher onBack={handleBack} />;
       case 'main':
       default:
         return <Menu onSelect={handleSelect} />;
