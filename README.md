@@ -34,19 +34,19 @@ An AI-powered, terminal-first CLI that integrates with GitHub Copilot for automa
 ### Global Install (Recommended)
 
 ```bash
-npm install -g meeseeks-cli
+npm install -g @piyushimraw/meeseeks
 ```
 
 Or with bun:
 
 ```bash
-bun install -g meeseeks-cli
+bun install -g @piyushimraw/meeseeks
 ```
 
 ### From Source
 
 ```bash
-git clone https://github.com/your-username/meeseeks.git
+git clone https://github.com/piyushimraw/meeseeks.git
 cd meeseeks
 npm install
 npm run build

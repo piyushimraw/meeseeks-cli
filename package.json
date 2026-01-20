@@ -1,14 +1,50 @@
 {
-  "name": "meeseeks",
+  "name": "@piyushimraw/meeseeks",
   "version": "1.0.0",
-  "description": "Meeseeks CLI welcome screen",
+  "description": "AI-powered CLI for automated QA planning, test generation, and documentation management using GitHub Copilot",
   "type": "module",
+  "author": {
+    "name": "Piyush Shrivastava",
+    "email": "piyush.srivastavaimraw@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piyushimraw/meeseeks.git"
+  },
+  "bugs": {
+    "url": "https://github.com/piyushimraw/meeseeks/issues"
+  },
+  "homepage": "https://github.com/piyushimraw/meeseeks#readme",
+  "keywords": [
+    "cli",
+    "copilot",
+    "github-copilot",
+    "testing",
+    "qa",
+    "test-generation",
+    "ai",
+    "terminal",
+    "tui",
+    "ink",
+    "react-cli",
+    "knowledge-base",
+    "rag"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "bin": {
     "meeseeks": "dist/index.js"
   },
   "scripts": {
     "start": "tsx src/index.tsx",
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "meeseeks": "node dist/index.js",
     "link": "npm run build && npm link",
     "bundle": "esbuild src/index.tsx --bundle --platform=node --target=node20 --format=esm --outfile=dist/bundle.mjs --external:react-devtools-core  --banner:js='#!/usr/bin/env node'",
