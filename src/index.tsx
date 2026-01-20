@@ -9,6 +9,7 @@ import {GitChanges} from './screens/GitChanges.js';
 import {KnowledgeBase} from './screens/KnowledgeBase.js';
 import {ModelSelect} from './screens/ModelSelect.js';
 import {TestWatcher} from './screens/TestWatcher.js';
+import {Settings} from './screens/Settings.js';
 import {CopilotProvider} from './context/CopilotContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
 import {CredentialProvider} from './context/CredentialContext.js';
@@ -46,6 +47,8 @@ const AppContent = () => {
         return <ModelSelect onBack={handleBack} />;
       case 'test-watcher':
         return <TestWatcher onBack={handleBack} />;
+      case 'settings':
+        return <Settings onBack={handleBack} />;
       case 'main':
       default:
         return <Menu onSelect={handleSelect} />;
