@@ -11,6 +11,7 @@ import {ModelSelect} from './screens/ModelSelect.js';
 import {TestWatcher} from './screens/TestWatcher.js';
 import {CopilotProvider} from './context/CopilotContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
+import {CredentialProvider} from './context/CredentialContext.js';
 import type {Screen} from './types/index.js';
 
 const palette = {
@@ -85,11 +86,13 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <CopilotProvider>
-      <KnowledgeBaseProvider>
-        <AppContent />
-      </KnowledgeBaseProvider>
-    </CopilotProvider>
+    <CredentialProvider>
+      <CopilotProvider>
+        <KnowledgeBaseProvider>
+          <AppContent />
+        </KnowledgeBaseProvider>
+      </CopilotProvider>
+    </CredentialProvider>
   );
 };
 
