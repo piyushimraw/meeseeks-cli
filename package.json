@@ -1,6 +1,6 @@
 {
   "name": "@piyushimraw/meeseeks",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AI-powered CLI for automated QA planning, test generation, and documentation management using GitHub Copilot",
   "type": "module",
   "author": {
