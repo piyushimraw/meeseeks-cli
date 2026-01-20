@@ -6,7 +6,8 @@ import {chatWithCopilot, type ChatResponse} from '../utils/copilot.js';
 import {getBranchDiff, getCurrentBranch, getDefaultBranch, getLocalBranches, getUncommittedDiff} from '../utils/git.js';
 import TextInput from 'ink-text-input';
 import {saveQAPlan, generateDefaultFilename} from '../utils/qaPlan.js';
-import type {KnowledgeBase, SearchResult} from '../types/index.js';
+import {condenseContext} from '../utils/tokenizer.js';
+import type {KnowledgeBase, SearchResult, CondenseResult} from '../types/index.js';
 
 const palette = {
   cyan: '#00DFFF',
@@ -71,6 +72,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
   const [selectedBranch, setSelectedBranch] = useState<string | null>(null);
   const [filename, setFilename] = useState('');
   const [savedPath, setSavedPath] = useState<string | null>(null);
+  const [condenseInfo, setCondenseInfo] = useState<CondenseResult | null>(null);
 
   // Load branch info on mount
   useEffect(() => {
@@ -147,13 +149,13 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
 
     setState('generating');
 
-    // Build the system prompt
+    // Build the initial system prompt
     let systemPrompt = 'You are a QA engineer assistant. Generate comprehensive, actionable test plans for code changes.';
     if (kbContent) {
       systemPrompt += `\n\n## Reference Documentation\nUse the following documentation to understand the project context and ensure test coverage aligns with documented features:\n\n${kbContent}`;
     }
 
-    // Build the user prompt
+    // Build the initial user prompt
     let userPrompt = 'Generate a QA test plan for the following code changes. Include:\n';
     userPrompt += '1. Summary of changes\n';
     userPrompt += '2. Areas affected\n';
@@ -162,14 +164,27 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
     userPrompt += '5. Regression testing recommendations\n\n';
     userPrompt += '## Code Changes (Git Diff)\n\n```diff\n' + gitDiff + '\n```';
 
+    // Apply context condensing if needed
+    const condenseResult = condenseContext({
+      modelId: authState.selectedModel,
+      systemPrompt,
+      userPrompt,
+      gitDiff,
+      kbContent,
+      searchResultCount: searchResults.length,
+    });
+
+    setCondenseInfo(condenseResult);
+
+    // Use condensed prompts
     const result = await chatWithCopilot(token, [
       {
         role: 'system',
-        content: systemPrompt,
+        content: condenseResult.systemPrompt,
       },
       {
         role: 'user',
-        content: userPrompt,
+        content: condenseResult.userPrompt,
       },
     ], authState.selectedModel);
 
@@ -332,6 +347,7 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
       setGitDiff('');
       setFilename('');
       setSavedPath(null);
+      setCondenseInfo(null);
     }
   });
 
@@ -557,6 +573,14 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
                 Analyzing changes with GitHub Copilot (model: {authState.selectedModel})
               </Text>
             </Box>
+            {condenseInfo && condenseInfo.condensed && (
+              <Box marginTop={1}>
+                <Text color={palette.yellow}>
+                  Context condensed: {condenseInfo.originalTokens.toLocaleString()} → {condenseInfo.finalTokens.toLocaleString()} tokens
+                  {condenseInfo.strategy !== 'none' && ` (${condenseInfo.strategy})`}
+                </Text>
+              </Box>
+            )}
           </Box>
         );
 
@@ -586,6 +610,21 @@ export const QAPlan: React.FC<QAPlanProps> = ({onBack}) => {
                   {modelInfo && usageInfo && ' | '}
                   {usageInfo && `Tokens: ${usageInfo.prompt_tokens.toLocaleString()} (prompt) + ${usageInfo.completion_tokens.toLocaleString()} (completion) = ${usageInfo.total_tokens.toLocaleString()} total`}
                 </Text>
+              </Box>
+            )}
+            {condenseInfo && condenseInfo.condensed && (
+              <Box marginTop={1} flexDirection="column">
+                <Text color={palette.yellow}>
+                  Context was condensed to fit model limits
+                </Text>
+                <Text color={palette.dim}>
+                  Original: {condenseInfo.originalTokens.toLocaleString()} tokens | Final: {condenseInfo.finalTokens.toLocaleString()} tokens
+                </Text>
+                {condenseInfo.warnings.map((warning, i) => (
+                  <Text key={i} color={palette.dim}>
+                    • {warning}
+                  </Text>
+                ))}
               </Box>
             )}
             <Box marginTop={2}>

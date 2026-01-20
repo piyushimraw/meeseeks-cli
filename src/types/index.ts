@@ -123,3 +123,32 @@ export interface WatcherStatus {
   lastEvent?: FileChangeEvent;
   lastGenerated?: GeneratedTest;
 }
+
+// Context Condensing Types
+export interface ContextAnalysis {
+  systemTokens: number;
+  userTokens: number;
+  totalTokens: number;
+  availableTokens: number;
+  exceedsLimit: boolean;
+  overflowTokens: number;
+}
+
+export interface CondenseResult {
+  condensed: boolean;
+  strategy: 'none' | 'reduce-kb' | 'truncate-diff' | 'both';
+  originalTokens: number;
+  finalTokens: number;
+  systemPrompt: string;
+  userPrompt: string;
+  warnings: string[];
+}
+
+export interface CondenseOptions {
+  modelId: string;
+  systemPrompt: string;
+  userPrompt: string;
+  gitDiff: string;
+  kbContent: string;
+  searchResultCount: number;
+}
