@@ -61,6 +61,12 @@ const menuItems: MenuItemData[] = [
     description: 'Manage documentation sources',
     category: 'tools',
   },
+  {
+    label: 'Integration Settings',
+    value: 'settings',
+    description: 'Manage service credentials',
+    category: 'tools',
+  },
 ];
 
 export const Menu: React.FC<MenuProps> = ({onSelect}) => {
@@ -71,6 +77,12 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
   useInput((input, key) => {
     if (input === 'q') {
       exit();
+    }
+
+    // Quick access to settings (per CONTEXT.md decision)
+    if (input === ',') {
+      onSelect('settings');
+      return;
     }
 
     if (key.upArrow) {
@@ -164,7 +176,7 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
 
       {/* Keyboard hints */}
       <Box marginTop={1} marginLeft={2}>
-        <Text color={palette.dim}>Up/Down Navigate  Enter Select  q Quit</Text>
+        <Text color={palette.dim}>Up/Down Navigate  Enter Select  , Settings  q Quit</Text>
       </Box>
     </Box>
   );
