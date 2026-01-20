@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings';
 
 export interface MenuItem {
   label: string;
@@ -151,4 +151,38 @@ export interface CondenseOptions {
   gitDiff: string;
   kbContent: string;
   searchResultCount: number;
+}
+
+// Credential Management Types
+export type ServiceId = 'jira' | 'squadcast' | 'solarwinds' | 'grafana';
+
+export interface ServiceCredential {
+  serviceId: ServiceId;
+  fields: Record<string, string>;  // e.g., { url: '...', token: '...' }
+  isConfigured: boolean;
+  lastVerified?: string;
+}
+
+export interface ServiceDefinition {
+  id: ServiceId;
+  name: string;
+  description: string;
+  fields: ServiceFieldDefinition[];
+  testConnection: (creds: Record<string, string>) => Promise<{success: boolean; error?: string}>;
+}
+
+export interface ServiceFieldDefinition {
+  key: string;
+  label: string;
+  type: 'text' | 'password' | 'url';
+  placeholder?: string;
+  validation?: (value: string) => string | null;  // Returns error message or null
+}
+
+// Error Types
+export interface ActionableError {
+  message: string;
+  suggestion?: string;
+  retryable: boolean;
+  details?: string;
 }
