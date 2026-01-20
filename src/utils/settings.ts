@@ -12,6 +12,9 @@ export interface MeeseeksConfig {
     lastVerified?: string;
     selectedModel?: string;  // Selected model ID (e.g., 'gpt-4o')
   };
+  services?: Record<string, {
+    lastVerified?: string;
+  }>;
 }
 
 function ensureConfigDir(): void {
