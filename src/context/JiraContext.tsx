@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import type { JiraTicket, ActionableError } from '../types/index.js';
-import { createJiraService, JiraService } from '../services/jira.js';
+import { createJiraService, JiraService, JiraTransition } from '../services/jira.js';
 import { useCredentials } from './CredentialContext.js';
 import { loadConfig, saveConfig } from '../utils/settings.js';
 import { formatApiError } from '../components/ErrorMessage.js';
@@ -20,6 +20,10 @@ interface JiraContextType {
   selectTicket: (ticket: JiraTicket | null) => void;
   refresh: () => Promise<void>;
   clearError: () => void;
+  // Transition methods
+  getTransitions: (issueKey: string) => Promise<JiraTransition[]>;
+  transitionTicket: (issueKey: string, transitionId: string) => Promise<{ success: boolean; error?: string }>;
+  findTransitionToStatus: (issueKey: string, targetStatus: string) => Promise<JiraTransition | null>;
 }
 
 const JiraContext = createContext<JiraContextType | undefined>(undefined);
@@ -115,6 +119,23 @@ export const JiraProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setState(prev => ({ ...prev, error: null }));
   }, []);
 
+  const getTransitions = useCallback(async (issueKey: string): Promise<JiraTransition[]> => {
+    if (!jiraServiceRef.current) return [];
+    return jiraServiceRef.current.getTransitions(issueKey);
+  }, []);
+
+  const transitionTicket = useCallback(async (issueKey: string, transitionId: string): Promise<{ success: boolean; error?: string }> => {
+    if (!jiraServiceRef.current) {
+      return { success: false, error: 'JIRA service not initialized' };
+    }
+    return jiraServiceRef.current.transitionTicket(issueKey, transitionId);
+  }, []);
+
+  const findTransitionToStatus = useCallback(async (issueKey: string, targetStatus: string): Promise<JiraTransition | null> => {
+    if (!jiraServiceRef.current) return null;
+    return jiraServiceRef.current.findTransitionToStatus(issueKey, targetStatus);
+  }, []);
+
   return (
     <JiraContext.Provider
       value={{
@@ -123,6 +144,9 @@ export const JiraProvider: React.FC<{ children: React.ReactNode }> = ({ children
         selectTicket,
         refresh,
         clearError,
+        getTransitions,
+        transitionTicket,
+        findTransitionToStatus,
       }}
     >
       {children}
@@ -137,3 +161,5 @@ export const useJira = (): JiraContextType => {
   }
   return context;
 };
+
+export type { JiraTransition } from '../services/jira.js';
