@@ -4,7 +4,6 @@ import { useJira } from '../context/JiraContext.js';
 import { useCredentials } from '../context/CredentialContext.js';
 import { Spinner } from '../components/Spinner.js';
 import { ErrorMessage } from '../components/ErrorMessage.js';
-import type { JiraTicket } from '../types/index.js';
 
 const palette = {
   cyan: '#00DFFF',
@@ -21,7 +20,7 @@ interface SprintViewProps {
   onBack: () => void;
 }
 
-// Priority indicator per CONTEXT.md
+// Priority indicator
 const getPriorityIndicator = (priority: string): { symbol: string; color: string } => {
   switch (priority) {
     case 'Highest':
@@ -42,7 +41,7 @@ const truncateSummary = (summary: string, maxLength: number = 45): string => {
 };
 
 export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
-  const { state: jiraState, loadBoards, selectTicket, refresh, clearError } = useJira();
+  const { state: jiraState, loadTickets, selectTicket, refresh, clearError } = useJira();
   const { getServiceStatus } = useCredentials();
   const [viewState, setViewState] = useState<ViewState>('list');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -51,10 +50,10 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
 
   // Initial load
   useEffect(() => {
-    if (jiraConfigured && jiraState.isConnected && jiraState.boards.length === 0) {
-      loadBoards();
+    if (jiraConfigured && jiraState.isConnected && jiraState.tickets.length === 0 && !jiraState.isLoading) {
+      loadTickets();
     }
-  }, [jiraConfigured, jiraState.isConnected, jiraState.boards.length, loadBoards]);
+  }, [jiraConfigured, jiraState.isConnected, jiraState.tickets.length, jiraState.isLoading, loadTickets]);
 
   // Check if configured
   useEffect(() => {
@@ -87,8 +86,8 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
       return;
     }
 
-    // Retry on error (per CONTEXT.md)
-    if (input === 'r' && jiraState.error) {
+    // Refresh
+    if (input === 'r') {
       clearError();
       refresh();
       return;
@@ -102,7 +101,7 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
         setSelectedIndex(prev => (prev < jiraState.tickets.length - 1 ? prev + 1 : 0));
       }
 
-      // Number shortcuts 1-9 (per CONTEXT.md)
+      // Number shortcuts 1-9
       const num = parseInt(input);
       if (num >= 1 && num <= 9 && num <= jiraState.tickets.length) {
         setSelectedIndex(num - 1);
@@ -120,10 +119,9 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
     if (viewState === 'actions') {
       if (input === '1') {
         // Start work - will be implemented in Phase 3
-        // For now just keeps ticket selected
         onBack();
       } else if (input === '2') {
-        // View details - show more info (could expand in future)
+        // View details
         setViewState('list');
       } else if (input === '3') {
         // Back to list
@@ -143,10 +141,7 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
 
   const renderLoading = () => (
     <Box flexDirection="column">
-      <Spinner
-        label="Loading sprint tickets..."
-        subtext={jiraState.activeSprint ? `Sprint: ${jiraState.activeSprint.name}` : undefined}
-      />
+      <Spinner label="Loading your tickets..." />
     </Box>
   );
 
@@ -159,70 +154,10 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
     </Box>
   );
 
-  // Format sprint dates for display
-  const formatSprintDates = () => {
-    if (!jiraState.activeSprint) return null;
-    const { startDate, endDate } = jiraState.activeSprint;
-    if (!startDate && !endDate) return null;
-
-    const formatDate = (dateStr: string) => {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    };
-
-    if (startDate && endDate) {
-      return `${formatDate(startDate)} - ${formatDate(endDate)}`;
-    }
-    if (startDate) return `Started ${formatDate(startDate)}`;
-    if (endDate) return `Ends ${formatDate(endDate)}`;
-    return null;
-  };
-
-  const renderSprintHeader = () => (
-    <Box flexDirection="column" marginBottom={1}>
-      {/* Board info */}
-      {jiraState.selectedBoard && (
-        <Box>
-          <Text color={palette.cyan}>Board: </Text>
-          <Text>{jiraState.selectedBoard.name}</Text>
-          <Text color={palette.dim}> ({jiraState.selectedBoard.type})</Text>
-        </Box>
-      )}
-
-      {/* Sprint info */}
-      {jiraState.activeSprint ? (
-        <Box>
-          <Text color={palette.cyan}>Sprint: </Text>
-          <Text>{jiraState.activeSprint.name}</Text>
-          {formatSprintDates() && (
-            <Text color={palette.dim}> ({formatSprintDates()})</Text>
-          )}
-        </Box>
-      ) : jiraState.selectedBoard && (
-        <Box>
-          <Text color={palette.yellow}>No active sprint found</Text>
-        </Box>
-      )}
-
-      {/* Working on indicator */}
-      {jiraState.selectedTicket && (
-        <Box>
-          <Text color={palette.dim}>Working on: </Text>
-          <Text color={palette.green}>{jiraState.selectedTicket.key}</Text>
-        </Box>
-      )}
-    </Box>
-  );
-
   const renderEmptyState = () => (
     <Box flexDirection="column">
-      {renderSprintHeader()}
-
-      <Box marginTop={1} flexDirection="column">
-        <Text color={palette.yellow}>No tickets assigned to you in this sprint</Text>
-        <Text color={palette.dim}>Filter: assignee = currentUser()</Text>
-      </Box>
-
+      <Text color={palette.yellow}>No open tickets assigned to you</Text>
+      <Text color={palette.dim}>Filter: assignee = currentUser() AND resolution = Unresolved</Text>
       <Box marginTop={1}>
         <Text color={palette.dim}>Press r to refresh  b to go back</Text>
       </Box>
@@ -231,10 +166,19 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
 
   const renderTicketList = () => (
     <Box flexDirection="column">
-      {/* Header with board/sprint info */}
-      {renderSprintHeader()}
+      {/* Header */}
+      <Box marginBottom={1}>
+        <Text color={palette.cyan}>My Tickets </Text>
+        <Text color={palette.dim}>({jiraState.tickets.length} open)</Text>
+        {jiraState.selectedTicket && (
+          <>
+            <Text color={palette.dim}> | Working on: </Text>
+            <Text color={palette.green}>{jiraState.selectedTicket.key}</Text>
+          </>
+        )}
+      </Box>
 
-      {/* Ticket list - compact one-line per ticket per CONTEXT.md */}
+      {/* Ticket list */}
       <Box flexDirection="column">
         {jiraState.tickets.map((ticket, index) => {
           const isSelected = index === selectedIndex;
@@ -267,7 +211,7 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
       {/* Footer */}
       <Box marginTop={2}>
         <Text color={palette.dim}>
-          j/k or Up/Down Navigate  1-9 Quick select  Enter Select  r Refresh  b Back
+          j/k Navigate  1-9 Quick select  Enter Select  r Refresh  b Back
         </Text>
       </Box>
     </Box>
@@ -326,7 +270,7 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
   return (
     <Box flexDirection="column" marginTop={1}>
       <Text color={palette.orange}>
-        {'+-[ Sprint Tickets ]' + '-'.repeat(42) + '+'}
+        {'+-[ My Tickets ]' + '-'.repeat(46) + '+'}
       </Text>
 
       <Box flexDirection="column" paddingLeft={2} paddingY={1}>

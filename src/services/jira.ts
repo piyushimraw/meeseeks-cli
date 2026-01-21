@@ -41,13 +41,11 @@ export class JiraService {
   }
 
   /**
-   * Get all scrum boards the user has access to
+   * Get all boards the user has access to (scrum and kanban)
    */
   async getBoards(): Promise<JiraBoard[]> {
     try {
-      const response = await this.agileClient.board.getAllBoards({
-        type: 'scrum',
-      });
+      const response = await this.agileClient.board.getAllBoards({});
       return (response.values || []).map(board => ({
         id: board.id!,
         name: board.name || 'Unnamed Board',
@@ -85,13 +83,12 @@ export class JiraService {
   }
 
   /**
-   * Get tickets assigned to current user in a sprint
+   * Get all tickets assigned to current user (across all projects/sprints)
    */
-  async getMySprintIssues(sprintId: number): Promise<JiraTicket[]> {
+  async getMyIssues(): Promise<JiraTicket[]> {
     try {
-      const response = await this.agileClient.sprint.getIssuesForSprint({
-        sprintId,
-        jql: 'assignee = currentUser()',
+      const response = await this.v3Client.issueSearch.searchForIssuesUsingJql({
+        jql: 'assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC, updated DESC',
         fields: ['summary', 'status', 'priority'],
         maxResults: 50,
       });
@@ -102,10 +99,10 @@ export class JiraService {
         summary: (issue.fields as Record<string, unknown>)?.summary as string || 'No summary',
         status: ((issue.fields as Record<string, unknown>)?.status as Record<string, unknown>)?.name as string || 'Unknown',
         priority: ((issue.fields as Record<string, unknown>)?.priority as Record<string, unknown>)?.name as string || 'Medium',
-        storyPoints: undefined, // Story points require custom field discovery - deferred
+        storyPoints: undefined,
       }));
     } catch (error) {
-      console.error('Failed to fetch sprint issues:', error);
+      console.error('Failed to fetch issues:', error);
       return [];
     }
   }
