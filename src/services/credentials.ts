@@ -1,4 +1,5 @@
 import { Entry } from '@napi-rs/keyring';
+import { loadConfig, saveConfig } from '../utils/settings.js';
 
 const SERVICE_PREFIX = 'meeseeks';
 
@@ -9,47 +10,79 @@ export interface Credential {
 }
 
 export class CredentialService {
-  private getEntry(service: string, account: string): Entry {
-    // Namespace all entries with app prefix to avoid conflicts
-    return new Entry(`${SERVICE_PREFIX}-${service}`, account);
-  }
-
   /**
-   * Store a credential in the OS keychain
-   * Note: @napi-rs/keyring operations are synchronous but we wrap in async
-   * for consistent API and future-proofing
+   * Store a credential in the config file
    */
   async store(cred: Credential): Promise<void> {
-    const entry = this.getEntry(cred.service, cred.account);
-    entry.setPassword(cred.secret);
+    const config = loadConfig();
+
+    // Ensure services object exists
+    if (!config.services) {
+      config.services = {};
+    }
+
+    // Ensure service entry exists
+    if (!config.services[cred.service]) {
+      config.services[cred.service] = {};
+    }
+
+    // Ensure credentials object exists
+    if (!config.services[cred.service].credentials) {
+      config.services[cred.service].credentials = {};
+    }
+
+    // Store credential
+    config.services[cred.service].credentials![cred.account] = cred.secret;
+
+    saveConfig(config);
   }
 
   /**
-   * Retrieve a credential from the OS keychain
+   * Retrieve a credential from config file (with keychain migration)
    * Returns null if not found
    */
   async retrieve(service: string, account: string): Promise<string | null> {
+    const config = loadConfig();
+
+    // Try file first
+    const fromFile = config.services?.[service]?.credentials?.[account];
+    if (fromFile) {
+      return fromFile;
+    }
+
+    // If not found, try keychain (migration)
     try {
-      const entry = this.getEntry(service, account);
-      return entry.getPassword();
+      const entry = new Entry(`${SERVICE_PREFIX}-${service}`, account);
+      const fromKeychain = entry.getPassword();
+
+      if (fromKeychain) {
+        // Migrate to file storage
+        await this.store({ service, account, secret: fromKeychain });
+        return fromKeychain;
+      }
+
+      return null;
     } catch {
-      // Entry not found or keychain error
+      // Entry not found in keychain either
       return null;
     }
   }
 
   /**
-   * Delete a credential from the OS keychain
+   * Delete a credential from the config file
    * Returns true if deleted, false if not found
    */
   async delete(service: string, account: string): Promise<boolean> {
-    try {
-      const entry = this.getEntry(service, account);
-      entry.deletePassword();
+    const config = loadConfig();
+
+    // Delete from config
+    if (config.services?.[service]?.credentials?.[account]) {
+      delete config.services[service].credentials![account];
+      saveConfig(config);
       return true;
-    } catch {
-      return false;
     }
+
+    return false;
   }
 
   /**
