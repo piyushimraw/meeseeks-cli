@@ -10,7 +10,9 @@ import {KnowledgeBase} from './screens/KnowledgeBase.js';
 import {ModelSelect} from './screens/ModelSelect.js';
 import {TestWatcher} from './screens/TestWatcher.js';
 import {Settings} from './screens/Settings.js';
+import {SprintView} from './screens/SprintView.js';
 import {CopilotProvider} from './context/CopilotContext.js';
+import {JiraProvider} from './context/JiraContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
 import {CredentialProvider} from './context/CredentialContext.js';
 import type {Screen} from './types/index.js';
@@ -49,6 +51,8 @@ const AppContent = () => {
         return <TestWatcher onBack={handleBack} />;
       case 'settings':
         return <Settings onBack={handleBack} />;
+      case 'sprint':
+        return <SprintView onBack={handleBack} />;
       case 'main':
       default:
         return <Menu onSelect={handleSelect} />;
@@ -90,11 +94,13 @@ const AppContent = () => {
 const App = () => {
   return (
     <CredentialProvider>
-      <CopilotProvider>
-        <KnowledgeBaseProvider>
-          <AppContent />
-        </KnowledgeBaseProvider>
-      </CopilotProvider>
+      <JiraProvider>
+        <CopilotProvider>
+          <KnowledgeBaseProvider>
+            <AppContent />
+          </KnowledgeBaseProvider>
+        </CopilotProvider>
+      </JiraProvider>
     </CredentialProvider>
   );
 };
