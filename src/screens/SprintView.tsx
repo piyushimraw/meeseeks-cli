@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useJira } from '../context/JiraContext.js';
 import { useCredentials } from '../context/CredentialContext.js';
 import { Spinner } from '../components/Spinner.js';
 import { ErrorMessage } from '../components/ErrorMessage.js';
+import type { JiraTicket } from '../types/index.js';
 
 const palette = {
   cyan: '#00DFFF',
@@ -14,7 +15,7 @@ const palette = {
   dim: '#666666',
 };
 
-type ViewState = 'list' | 'actions' | 'not-configured';
+type ViewState = 'list' | 'actions' | 'not-configured' | 'filter';
 
 interface SprintViewProps {
   onBack: () => void;
@@ -35,7 +36,7 @@ const getPriorityIndicator = (priority: string): { symbol: string; color: string
 };
 
 // Truncate summary to fit terminal
-const truncateSummary = (summary: string, maxLength: number = 45): string => {
+const truncateSummary = (summary: string, maxLength: number = 40): string => {
   if (summary.length <= maxLength) return summary;
   return summary.substring(0, maxLength - 3) + '...';
 };
@@ -45,6 +46,7 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
   const { getServiceStatus } = useCredentials();
   const [viewState, setViewState] = useState<ViewState>('list');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [filterText, setFilterText] = useState('');
 
   const jiraConfigured = getServiceStatus('jira')?.isConfigured;
 
@@ -62,27 +64,70 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
   useEffect(() => {
     if (!jiraConfigured) {
       setViewState('not-configured');
-    } else {
+    } else if (viewState === 'not-configured') {
       setViewState('list');
     }
-  }, [jiraConfigured]);
+  }, [jiraConfigured, viewState]);
+
+  // Filter tickets based on filterText
+  const filteredTickets = useMemo(() => {
+    if (!filterText.trim()) {
+      return jiraState.tickets;
+    }
+    const search = filterText.toLowerCase().trim();
+    return jiraState.tickets.filter((ticket: JiraTicket) =>
+      ticket.key.toLowerCase().includes(search) ||
+      ticket.summary.toLowerCase().includes(search) ||
+      ticket.status.toLowerCase().includes(search)
+    );
+  }, [jiraState.tickets, filterText]);
+
+  // Reset selected index when filter changes
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [filterText]);
 
   // Sync selectedIndex with selectedTicket from state
   useEffect(() => {
-    if (jiraState.selectedTicket && jiraState.tickets.length > 0) {
-      const idx = jiraState.tickets.findIndex(t => t.key === jiraState.selectedTicket?.key);
+    if (jiraState.selectedTicket && filteredTickets.length > 0) {
+      const idx = filteredTickets.findIndex(t => t.key === jiraState.selectedTicket?.key);
       if (idx >= 0) {
         setSelectedIndex(idx);
       }
     }
-  }, [jiraState.selectedTicket, jiraState.tickets]);
+  }, [jiraState.selectedTicket, filteredTickets]);
 
   // Keyboard navigation
   useInput((input, key) => {
+    // Filter mode input handling
+    if (viewState === 'filter') {
+      if (key.escape) {
+        setViewState('list');
+        return;
+      }
+      if (key.return) {
+        setViewState('list');
+        return;
+      }
+      if (key.backspace || key.delete) {
+        setFilterText(prev => prev.slice(0, -1));
+        return;
+      }
+      // Add printable characters to filter
+      if (input && input.length === 1 && !key.ctrl && !key.meta) {
+        setFilterText(prev => prev + input);
+        return;
+      }
+      return;
+    }
+
     // Global back
     if (input === 'b' || key.escape) {
       if (viewState === 'actions') {
         setViewState('list');
+      } else if (filterText) {
+        // Clear filter first
+        setFilterText('');
       } else {
         onBack();
       }
@@ -92,27 +137,40 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
     // Refresh
     if (input === 'r') {
       clearError();
+      setHasLoaded(false);
       refresh();
       return;
     }
 
-    if (viewState === 'list' && jiraState.tickets.length > 0) {
+    // Enter filter mode with /
+    if (input === '/' && viewState === 'list') {
+      setViewState('filter');
+      return;
+    }
+
+    // Clear filter with c
+    if (input === 'c' && viewState === 'list' && filterText) {
+      setFilterText('');
+      return;
+    }
+
+    if (viewState === 'list' && filteredTickets.length > 0) {
       // Arrow/vim navigation
       if (key.upArrow || input === 'k') {
-        setSelectedIndex(prev => (prev > 0 ? prev - 1 : jiraState.tickets.length - 1));
+        setSelectedIndex(prev => (prev > 0 ? prev - 1 : filteredTickets.length - 1));
       } else if (key.downArrow || input === 'j') {
-        setSelectedIndex(prev => (prev < jiraState.tickets.length - 1 ? prev + 1 : 0));
+        setSelectedIndex(prev => (prev < filteredTickets.length - 1 ? prev + 1 : 0));
       }
 
       // Number shortcuts 1-9
       const num = parseInt(input);
-      if (num >= 1 && num <= 9 && num <= jiraState.tickets.length) {
+      if (num >= 1 && num <= 9 && num <= filteredTickets.length) {
         setSelectedIndex(num - 1);
       }
 
       // Select ticket
       if (key.return) {
-        const ticket = jiraState.tickets[selectedIndex];
+        const ticket = filteredTickets[selectedIndex];
         selectTicket(ticket);
         setViewState('actions');
       }
@@ -167,12 +225,26 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
     </Box>
   );
 
+  const renderFilterInput = () => (
+    <Box marginBottom={1}>
+      <Text color={palette.cyan}>Filter: </Text>
+      <Text color={palette.yellow}>{filterText}</Text>
+      <Text color={palette.dim}>█</Text>
+      {viewState === 'filter' && (
+        <Text color={palette.dim}> (Enter to confirm, Esc to cancel)</Text>
+      )}
+    </Box>
+  );
+
   const renderTicketList = () => (
     <Box flexDirection="column">
       {/* Header */}
       <Box marginBottom={1}>
         <Text color={palette.cyan}>My Tickets </Text>
-        <Text color={palette.dim}>({jiraState.tickets.length} open)</Text>
+        <Text color={palette.dim}>
+          ({filteredTickets.length}
+          {filterText && ` of ${jiraState.tickets.length}`} open)
+        </Text>
         {jiraState.selectedTicket && (
           <>
             <Text color={palette.dim}> | Working on: </Text>
@@ -181,9 +253,20 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
         )}
       </Box>
 
+      {/* Filter input */}
+      {(filterText || viewState === 'filter') && renderFilterInput()}
+
+      {/* No matches message */}
+      {filteredTickets.length === 0 && filterText && (
+        <Box marginY={1}>
+          <Text color={palette.yellow}>No tickets match "{filterText}"</Text>
+          <Text color={palette.dim}> - press c to clear filter</Text>
+        </Box>
+      )}
+
       {/* Ticket list */}
       <Box flexDirection="column">
-        {jiraState.tickets.map((ticket, index) => {
+        {filteredTickets.map((ticket, index) => {
           const isSelected = index === selectedIndex;
           const priority = getPriorityIndicator(ticket.priority);
           const shortcutNum = index < 9 ? `${index + 1}` : ' ';
@@ -214,7 +297,7 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
       {/* Footer */}
       <Box marginTop={2}>
         <Text color={palette.dim}>
-          j/k Navigate  1-9 Quick select  Enter Select  r Refresh  b Back
+          j/k Navigate  / Filter  {filterText && 'c Clear  '}Enter Select  r Refresh  b Back
         </Text>
       </Box>
     </Box>
