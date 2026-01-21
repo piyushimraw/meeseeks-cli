@@ -37,3 +37,4 @@ Thumbs.db
 .worktrees/
 .security-key
 logs/security/
+.planning/
