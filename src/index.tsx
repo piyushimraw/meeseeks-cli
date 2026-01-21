@@ -11,11 +11,12 @@ import {ModelSelect} from './screens/ModelSelect.js';
 import {TestWatcher} from './screens/TestWatcher.js';
 import {Settings} from './screens/Settings.js';
 import {SprintView} from './screens/SprintView.js';
+import {WorkflowWizard} from './screens/WorkflowWizard.js';
 import {CopilotProvider} from './context/CopilotContext.js';
 import {JiraProvider} from './context/JiraContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
 import {CredentialProvider} from './context/CredentialContext.js';
-import type {Screen} from './types/index.js';
+import type {Screen, JiraTicket} from './types/index.js';
 
 const palette = {
   cyan: '#00DFFF',
@@ -26,8 +27,10 @@ const palette = {
 
 const AppContent = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('main');
+  const [workflowTicket, setWorkflowTicket] = useState<JiraTicket | null>(null);
 
-  const handleSelect = (screen: Screen) => {
+  const handleSelect = (screen: Screen, ticket?: JiraTicket) => {
+    if (ticket) setWorkflowTicket(ticket);
     setCurrentScreen(screen);
   };
 
@@ -52,7 +55,17 @@ const AppContent = () => {
       case 'settings':
         return <Settings onBack={handleBack} />;
       case 'sprint':
-        return <SprintView onBack={handleBack} />;
+        return <SprintView onBack={handleBack} onStartWorkflow={(ticket) => handleSelect('workflow', ticket)} />;
+      case 'workflow':
+        return workflowTicket ? (
+          <WorkflowWizard
+            ticket={workflowTicket}
+            onBack={handleBack}
+            onComplete={handleBack}
+          />
+        ) : (
+          <SprintView onBack={handleBack} onStartWorkflow={(ticket) => handleSelect('workflow', ticket)} />
+        );
       case 'main':
       default:
         return <Menu onSelect={handleSelect} />;

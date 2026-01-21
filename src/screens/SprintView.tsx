@@ -19,6 +19,7 @@ type ViewState = 'list' | 'actions' | 'not-configured' | 'filter';
 
 interface SprintViewProps {
   onBack: () => void;
+  onStartWorkflow?: (ticket: JiraTicket) => void;
 }
 
 // Priority indicator
@@ -41,7 +42,7 @@ const truncateSummary = (summary: string, maxLength: number = 40): string => {
   return summary.substring(0, maxLength - 3) + '...';
 };
 
-export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
+export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow }) => {
   const { state: jiraState, loadTickets, selectTicket, refresh, clearError } = useJira();
   const { getServiceStatus } = useCredentials();
   const [viewState, setViewState] = useState<ViewState>('list');
@@ -178,9 +179,9 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
 
     // Actions view
     if (viewState === 'actions') {
-      if (input === '1') {
-        // Start work - will be implemented in Phase 3
-        onBack();
+      if (input === '1' && onStartWorkflow && jiraState.selectedTicket) {
+        // Start work - triggers workflow wizard
+        onStartWorkflow(jiraState.selectedTicket);
       } else if (input === '2') {
         // View details
         setViewState('list');
@@ -318,7 +319,7 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
         <Box flexDirection="column" marginTop={2}>
           <Text color={palette.yellow} bold>Actions</Text>
           <Box marginLeft={2} flexDirection="column">
-            <Text>1. Start work (Phase 3)</Text>
+            <Text>1. Start work</Text>
             <Text>2. View details</Text>
             <Text>3. Back to list</Text>
           </Box>
