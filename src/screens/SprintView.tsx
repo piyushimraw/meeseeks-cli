@@ -48,12 +48,15 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
 
   const jiraConfigured = getServiceStatus('jira')?.isConfigured;
 
-  // Initial load
+  // Initial load - only once when connected, not on error
+  const [hasLoaded, setHasLoaded] = useState(false);
+
   useEffect(() => {
-    if (jiraConfigured && jiraState.isConnected && jiraState.tickets.length === 0 && !jiraState.isLoading) {
+    if (jiraConfigured && jiraState.isConnected && !hasLoaded && !jiraState.isLoading && !jiraState.error) {
+      setHasLoaded(true);
       loadTickets();
     }
-  }, [jiraConfigured, jiraState.isConnected, jiraState.tickets.length, jiraState.isLoading, loadTickets]);
+  }, [jiraConfigured, jiraState.isConnected, hasLoaded, jiraState.isLoading, jiraState.error, loadTickets]);
 
   // Check if configured
   useEffect(() => {

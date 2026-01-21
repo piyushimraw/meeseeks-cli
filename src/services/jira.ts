@@ -84,10 +84,12 @@ export class JiraService {
 
   /**
    * Get all tickets assigned to current user (across all projects/sprints)
+   * Uses POST method to avoid 410 Gone on older JIRA instances
    */
   async getMyIssues(): Promise<JiraTicket[]> {
     try {
-      const response = await this.v3Client.issueSearch.searchForIssuesUsingJql({
+      // Use POST method (searchForIssuesUsingJqlPost) to avoid 410 Gone error
+      const response = await this.v3Client.issueSearch.searchForIssuesUsingJqlPost({
         jql: 'assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC, updated DESC',
         fields: ['summary', 'status', 'priority'],
         maxResults: 50,
@@ -103,7 +105,7 @@ export class JiraService {
       }));
     } catch (error) {
       console.error('Failed to fetch issues:', error);
-      return [];
+      throw error; // Re-throw so context can handle it
     }
   }
 }
