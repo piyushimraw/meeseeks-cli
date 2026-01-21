@@ -4,6 +4,7 @@ import { useJira } from '../context/JiraContext.js';
 import { useCredentials } from '../context/CredentialContext.js';
 import { Spinner } from '../components/Spinner.js';
 import { ErrorMessage } from '../components/ErrorMessage.js';
+import { hasExistingPlans } from '../utils/planGenerator.js';
 import type { JiraTicket } from '../types/index.js';
 
 const palette = {
@@ -20,6 +21,7 @@ type ViewState = 'list' | 'actions' | 'details' | 'not-configured' | 'filter';
 interface SprintViewProps {
   onBack: () => void;
   onStartWorkflow?: (ticket: JiraTicket) => void;
+  onGeneratePlan?: (ticket: JiraTicket) => void;
 }
 
 // Priority indicator
@@ -42,12 +44,13 @@ const truncateSummary = (summary: string, maxLength: number = 40): string => {
   return summary.substring(0, maxLength - 3) + '...';
 };
 
-export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow }) => {
+export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow, onGeneratePlan }) => {
   const { state: jiraState, loadTickets, selectTicket, refresh, clearError } = useJira();
   const { getServiceStatus } = useCredentials();
   const [viewState, setViewState] = useState<ViewState>('list');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [filterText, setFilterText] = useState('');
+  const [planStatus, setPlanStatus] = useState<Map<string, { impl: boolean; verify: boolean }>>(new Map());
 
   const jiraConfigured = getServiceStatus('jira')?.isConfigured;
 
@@ -87,6 +90,16 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow 
   useEffect(() => {
     setSelectedIndex(0);
   }, [filterText]);
+
+  // Update plan status when tickets change
+  useEffect(() => {
+    const newStatus = new Map<string, { impl: boolean; verify: boolean }>();
+    jiraState.tickets.forEach((ticket: JiraTicket) => {
+      const existing = hasExistingPlans(ticket.key);
+      newStatus.set(ticket.key, { impl: existing.impl, verify: existing.verify });
+    });
+    setPlanStatus(newStatus);
+  }, [jiraState.tickets]);
 
   // Sync selectedIndex with selectedTicket from state
   useEffect(() => {
@@ -152,6 +165,14 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow 
     // Clear filter with c
     if (input === 'c' && viewState === 'list' && filterText) {
       setFilterText('');
+      return;
+    }
+
+    // Generate plan with p
+    if (input === 'p' && viewState === 'list' && filteredTickets.length > 0 && onGeneratePlan) {
+      const ticket = filteredTickets[selectedIndex];
+      selectTicket(ticket);
+      onGeneratePlan(ticket);
       return;
     }
 
@@ -297,6 +318,16 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow 
               }>
                 [{ticket.status}]
               </Text>
+              {(() => {
+                const plans = planStatus.get(ticket.key);
+                if (!plans) return null;
+                if (plans.impl && plans.verify) {
+                  return <Text color={palette.green}> [P+V]</Text>;
+                } else if (plans.impl) {
+                  return <Text color={palette.yellow}> [P]</Text>;
+                }
+                return null;
+              })()}
             </Box>
           );
         })}
@@ -305,7 +336,12 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow 
       {/* Footer */}
       <Box marginTop={2}>
         <Text color={palette.dim}>
-          j/k Navigate  / Filter  {filterText && 'c Clear  '}Enter Select  r Refresh  b Back
+          j/k Navigate  / Filter  {filterText && 'c Clear  '}p Plan  Enter Select  r Refresh  b Back
+        </Text>
+      </Box>
+      <Box marginTop={1}>
+        <Text color={palette.dim}>
+          [P] = has impl plan  [P+V] = has both plans
         </Text>
       </Box>
     </Box>
