@@ -1,4 +1,7 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+import { createRequire } from 'module';
+import { runGit } from './git.js';
+
+const require = createRequire(import.meta.url);
 const slugify = require('slugify') as (text: string, options?: {
   replacement?: string;
   remove?: RegExp;
@@ -7,8 +10,6 @@ const slugify = require('slugify') as (text: string, options?: {
   locale?: string;
   trim?: boolean;
 }) => string;
-
-import { runGit } from './git.js';
 
 const MAX_BRANCH_LENGTH = 50;
 
