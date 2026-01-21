@@ -22,7 +22,7 @@ export interface FileDiff {
   truncated: boolean;
 }
 
-function runGit(args: string[]): {stdout: string; stderr: string; success: boolean} {
+export function runGit(args: string[]): {stdout: string; stderr: string; success: boolean} {
   const result = spawnSync('git', args, {
     encoding: 'utf-8',
     maxBuffer: 10 * 1024 * 1024,
@@ -339,4 +339,68 @@ export function getBranchDiff(baseBranch?: string): string {
   }
 
   return result.stdout || '(no changes)';
+}
+
+/**
+ * Check if there are uncommitted changes in the repository
+ */
+export function hasUncommittedChanges(): boolean {
+  const result = runGit(['status', '--porcelain']);
+  return result.success && result.stdout.trim().length > 0;
+}
+
+/**
+ * Stash current changes with a message
+ */
+export function stashPush(message: string): { success: boolean; error?: string } {
+  const result = runGit(['stash', 'push', '-m', message]);
+  if (!result.success) {
+    return { success: false, error: result.stderr || 'Failed to stash changes' };
+  }
+  return { success: true };
+}
+
+/**
+ * Pop the most recent stash
+ */
+export function stashPop(): { success: boolean; error?: string } {
+  const result = runGit(['stash', 'pop']);
+  if (!result.success) {
+    return { success: false, error: result.stderr || 'Failed to pop stash' };
+  }
+  return { success: true };
+}
+
+/**
+ * Check if a branch exists locally
+ */
+export function branchExists(name: string): boolean {
+  const result = runGit(['show-ref', '--verify', '--quiet', `refs/heads/${name}`]);
+  return result.success;
+}
+
+/**
+ * Create a new branch and checkout to it
+ */
+export function createBranch(name: string, baseBranch?: string): { success: boolean; error?: string } {
+  const args = ['checkout', '-b', name];
+  if (baseBranch) {
+    args.push(baseBranch);
+  }
+  const result = runGit(args);
+  if (!result.success) {
+    return { success: false, error: result.stderr || 'Failed to create branch' };
+  }
+  return { success: true };
+}
+
+/**
+ * Checkout an existing branch
+ */
+export function checkoutBranch(name: string): { success: boolean; error?: string } {
+  const result = runGit(['checkout', name]);
+  if (!result.success) {
+    return { success: false, error: result.stderr || 'Failed to checkout branch' };
+  }
+  return { success: true };
 }
