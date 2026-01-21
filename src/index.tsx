@@ -12,6 +12,7 @@ import {TestWatcher} from './screens/TestWatcher.js';
 import {Settings} from './screens/Settings.js';
 import {SprintView} from './screens/SprintView.js';
 import {WorkflowWizard} from './screens/WorkflowWizard.js';
+import {PlanGenerator} from './screens/PlanGenerator.js';
 import {CopilotProvider} from './context/CopilotContext.js';
 import {JiraProvider, useJira} from './context/JiraContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
@@ -28,6 +29,7 @@ const palette = {
 const AppContent = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('main');
   const [workflowTicket, setWorkflowTicket] = useState<JiraTicket | null>(null);
+  const [planTicket, setPlanTicket] = useState<JiraTicket | null>(null);
   const { refresh } = useJira();
 
   const handleSelect = (screen: Screen, ticket?: JiraTicket) => {
@@ -44,11 +46,28 @@ const AppContent = () => {
     setCurrentScreen('sprint');
   }, []);
 
-  // Complete workflow: refresh tickets and go to sprint
-  const handleWorkflowComplete = useCallback(() => {
+  // Generate plan handler
+  const handleGeneratePlan = useCallback((ticket: JiraTicket) => {
+    setPlanTicket(ticket);
+    setCurrentScreen('plan-generator');
+  }, []);
+
+  // Plan generator completion: refresh tickets and go to sprint
+  const handlePlanComplete = useCallback(() => {
     refresh();
     setCurrentScreen('sprint');
   }, [refresh]);
+
+  // Complete workflow: refresh tickets and go to sprint, or plan if requested
+  const handleWorkflowComplete = useCallback((action?: 'plan') => {
+    refresh();
+    if (action === 'plan' && workflowTicket) {
+      setPlanTicket(workflowTicket);
+      setCurrentScreen('plan-generator');
+    } else {
+      setCurrentScreen('sprint');
+    }
+  }, [refresh, workflowTicket]);
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -67,7 +86,13 @@ const AppContent = () => {
       case 'settings':
         return <Settings onBack={handleBack} />;
       case 'sprint':
-        return <SprintView onBack={handleBack} onStartWorkflow={(ticket) => handleSelect('workflow', ticket)} />;
+        return (
+          <SprintView
+            onBack={handleBack}
+            onStartWorkflow={(ticket) => handleSelect('workflow', ticket)}
+            onGeneratePlan={handleGeneratePlan}
+          />
+        );
       case 'workflow':
         return workflowTicket ? (
           <WorkflowWizard
@@ -76,7 +101,25 @@ const AppContent = () => {
             onComplete={handleWorkflowComplete}
           />
         ) : (
-          <SprintView onBack={handleBack} onStartWorkflow={(ticket) => handleSelect('workflow', ticket)} />
+          <SprintView
+            onBack={handleBack}
+            onStartWorkflow={(ticket) => handleSelect('workflow', ticket)}
+            onGeneratePlan={handleGeneratePlan}
+          />
+        );
+      case 'plan-generator':
+        return planTicket ? (
+          <PlanGenerator
+            ticket={planTicket}
+            onBack={handleBackToSprint}
+            onComplete={handlePlanComplete}
+          />
+        ) : (
+          <SprintView
+            onBack={handleBack}
+            onStartWorkflow={(ticket) => handleSelect('workflow', ticket)}
+            onGeneratePlan={handleGeneratePlan}
+          />
         );
       case 'main':
       default:

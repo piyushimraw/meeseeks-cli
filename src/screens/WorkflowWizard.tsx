@@ -49,7 +49,7 @@ interface WizardState {
 interface WorkflowWizardProps {
   ticket: JiraTicket;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (action?: 'plan') => void;
 }
 
 export const WorkflowWizard: React.FC<WorkflowWizardProps> = ({ ticket, onBack, onComplete }) => {
@@ -284,7 +284,7 @@ export const WorkflowWizard: React.FC<WorkflowWizardProps> = ({ ticket, onBack, 
 
       case 'complete':
         if (input === 'p' || input === 'P') {
-          onComplete();
+          onComplete('plan');
         } else if (input === 'q' || input === 'Q' || key.escape) {
           onBack();
         }
