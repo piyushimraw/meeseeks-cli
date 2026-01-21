@@ -1,4 +1,4 @@
-import { AgileClient, Version3Client } from 'jira.js';
+import { AgileClient, Version2Client, Version3Client } from 'jira.js';
 import type { JiraTicket, JiraSprint, JiraBoard } from '../types/index.js';
 
 interface JiraConfig {
@@ -9,6 +9,7 @@ interface JiraConfig {
 
 export class JiraService {
   private agileClient: AgileClient;
+  private v2Client: Version2Client;
   private v3Client: Version3Client;
 
   constructor(config: JiraConfig) {
@@ -22,6 +23,7 @@ export class JiraService {
       },
     };
     this.agileClient = new AgileClient(clientConfig);
+    this.v2Client = new Version2Client(clientConfig);
     this.v3Client = new Version3Client(clientConfig);
   }
 
@@ -84,12 +86,12 @@ export class JiraService {
 
   /**
    * Get all tickets assigned to current user (across all projects/sprints)
-   * Uses POST method to avoid 410 Gone on older JIRA instances
+   * Uses API v2 as v3 search endpoint returns 410 on some JIRA instances
    */
   async getMyIssues(): Promise<JiraTicket[]> {
     try {
-      // Use POST method (searchForIssuesUsingJqlPost) to avoid 410 Gone error
-      const response = await this.v3Client.issueSearch.searchForIssuesUsingJqlPost({
+      // Use v2 API which is more widely supported
+      const response = await this.v2Client.issueSearch.searchForIssuesUsingJql({
         jql: 'assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC, updated DESC',
         fields: ['summary', 'status', 'priority'],
         maxResults: 50,
