@@ -1,4 +1,5 @@
 import { AgileClient, Version2Client, Version3Client } from 'jira.js';
+import axios from 'axios';
 import type { JiraTicket, JiraSprint, JiraBoard } from '../types/index.js';
 
 interface JiraConfig {
@@ -11,8 +12,10 @@ export class JiraService {
   private agileClient: AgileClient;
   private v2Client: Version2Client;
   private v3Client: Version3Client;
+  private config: JiraConfig;
 
   constructor(config: JiraConfig) {
+    this.config = config;
     const clientConfig = {
       host: config.host,
       authentication: {
@@ -86,28 +89,51 @@ export class JiraService {
 
   /**
    * Get all tickets assigned to current user (across all projects/sprints)
-   * Uses API v2 as v3 search endpoint returns 410 on some JIRA instances
+   * Uses the new /rest/api/3/search/jql endpoint (old /search was deprecated Oct 2025)
+   * See: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/#api-rest-api-3-search-jql-get
    */
   async getMyIssues(): Promise<JiraTicket[]> {
     try {
-      // Use v2 API which is more widely supported
-      const response = await this.v2Client.issueSearch.searchForIssuesUsingJql({
-        jql: 'assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC, updated DESC',
-        fields: ['summary', 'status', 'priority'],
-        maxResults: 50,
+      // Build the base URL properly
+      let host = this.config.host;
+      if (!host.startsWith('http://') && !host.startsWith('https://')) {
+        host = `https://${host}`;
+      }
+      if (host.endsWith('/')) {
+        host = host.slice(0, -1);
+      }
+
+      // Use the new /search/jql endpoint
+      const jql = 'assignee = currentUser() AND resolution = Unresolved ORDER BY priority DESC, updated DESC';
+      const fields = 'summary,status,priority';
+
+      const response = await axios.get(`${host}/rest/api/3/search/jql`, {
+        params: {
+          jql,
+          fields,
+          maxResults: 50,
+        },
+        auth: {
+          username: this.config.email,
+          password: this.config.apiToken,
+        },
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
-      return (response.issues || []).map(issue => ({
-        id: issue.id!,
-        key: issue.key!,
-        summary: (issue.fields as Record<string, unknown>)?.summary as string || 'No summary',
-        status: ((issue.fields as Record<string, unknown>)?.status as Record<string, unknown>)?.name as string || 'Unknown',
-        priority: ((issue.fields as Record<string, unknown>)?.priority as Record<string, unknown>)?.name as string || 'Medium',
+      const issues = response.data.issues || [];
+      return issues.map((issue: Record<string, unknown>) => ({
+        id: issue.id as string,
+        key: issue.key as string,
+        summary: ((issue.fields as Record<string, unknown>)?.summary as string) || 'No summary',
+        status: (((issue.fields as Record<string, unknown>)?.status as Record<string, unknown>)?.name as string) || 'Unknown',
+        priority: (((issue.fields as Record<string, unknown>)?.priority as Record<string, unknown>)?.name as string) || 'Medium',
         storyPoints: undefined,
       }));
     } catch (error) {
       console.error('Failed to fetch issues:', error);
-      throw error; // Re-throw so context can handle it
+      throw error;
     }
   }
 }
