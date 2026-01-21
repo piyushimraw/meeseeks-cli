@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Version3Client } from 'jira.js';
 import type { ServiceId, ServiceCredential, ServiceDefinition } from '../types/index.js';
 import { credentialService } from '../services/credentials.js';
 import { loadConfig, saveConfig } from '../utils/settings.js';
@@ -36,12 +37,32 @@ const SERVICE_DEFINITIONS: ServiceDefinition[] = [
       }
     ],
     testConnection: async (creds) => {
-      // Placeholder - Phase 2 will implement actual JIRA test
-      // For now, just validate fields are present
       if (!creds.url || !creds.email || !creds.token) {
         return { success: false, error: 'All fields are required' };
       }
-      return { success: true };
+      try {
+        const client = new Version3Client({
+          host: creds.url,
+          authentication: {
+            basic: {
+              email: creds.email,
+              apiToken: creds.token,
+            },
+          },
+        });
+        await client.myself.getCurrentUser();
+        return { success: true };
+      } catch (error) {
+        // Parse jira.js error for user-friendly message
+        const message = error instanceof Error ? error.message : 'Connection failed';
+        if (message.includes('401') || message.includes('Unauthorized')) {
+          return { success: false, error: 'Invalid credentials. Check your email and API token.' };
+        }
+        if (message.includes('ENOTFOUND') || message.includes('getaddrinfo')) {
+          return { success: false, error: 'Could not reach JIRA. Check your URL.' };
+        }
+        return { success: false, error: message };
+      }
     }
   },
   {
