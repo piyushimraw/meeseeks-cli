@@ -159,33 +159,80 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack }) => {
     </Box>
   );
 
+  // Format sprint dates for display
+  const formatSprintDates = () => {
+    if (!jiraState.activeSprint) return null;
+    const { startDate, endDate } = jiraState.activeSprint;
+    if (!startDate && !endDate) return null;
+
+    const formatDate = (dateStr: string) => {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
+    if (startDate && endDate) {
+      return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    }
+    if (startDate) return `Started ${formatDate(startDate)}`;
+    if (endDate) return `Ends ${formatDate(endDate)}`;
+    return null;
+  };
+
+  const renderSprintHeader = () => (
+    <Box flexDirection="column" marginBottom={1}>
+      {/* Board info */}
+      {jiraState.selectedBoard && (
+        <Box>
+          <Text color={palette.cyan}>Board: </Text>
+          <Text>{jiraState.selectedBoard.name}</Text>
+          <Text color={palette.dim}> ({jiraState.selectedBoard.type})</Text>
+        </Box>
+      )}
+
+      {/* Sprint info */}
+      {jiraState.activeSprint ? (
+        <Box>
+          <Text color={palette.cyan}>Sprint: </Text>
+          <Text>{jiraState.activeSprint.name}</Text>
+          {formatSprintDates() && (
+            <Text color={palette.dim}> ({formatSprintDates()})</Text>
+          )}
+        </Box>
+      ) : jiraState.selectedBoard && (
+        <Box>
+          <Text color={palette.yellow}>No active sprint found</Text>
+        </Box>
+      )}
+
+      {/* Working on indicator */}
+      {jiraState.selectedTicket && (
+        <Box>
+          <Text color={palette.dim}>Working on: </Text>
+          <Text color={palette.green}>{jiraState.selectedTicket.key}</Text>
+        </Box>
+      )}
+    </Box>
+  );
+
   const renderEmptyState = () => (
     <Box flexDirection="column">
-      <Text color={palette.dim}>No tickets assigned to you in current sprint</Text>
-      {jiraState.activeSprint && (
-        <Text color={palette.dim}>Sprint: {jiraState.activeSprint.name}</Text>
-      )}
+      {renderSprintHeader()}
+
+      <Box marginTop={1} flexDirection="column">
+        <Text color={palette.yellow}>No tickets assigned to you in this sprint</Text>
+        <Text color={palette.dim}>Filter: assignee = currentUser()</Text>
+      </Box>
+
       <Box marginTop={1}>
-        <Text color={palette.dim}>Press r to refresh</Text>
+        <Text color={palette.dim}>Press r to refresh  b to go back</Text>
       </Box>
     </Box>
   );
 
   const renderTicketList = () => (
     <Box flexDirection="column">
-      {/* Header with sprint info */}
-      {jiraState.activeSprint && (
-        <Box marginBottom={1}>
-          <Text color={palette.cyan}>Sprint: </Text>
-          <Text>{jiraState.activeSprint.name}</Text>
-          {jiraState.selectedTicket && (
-            <>
-              <Text color={palette.dim}> | Working on: </Text>
-              <Text color={palette.green}>{jiraState.selectedTicket.key}</Text>
-            </>
-          )}
-        </Box>
-      )}
+      {/* Header with board/sprint info */}
+      {renderSprintHeader()}
 
       {/* Ticket list - compact one-line per ticket per CONTEXT.md */}
       <Box flexDirection="column">
