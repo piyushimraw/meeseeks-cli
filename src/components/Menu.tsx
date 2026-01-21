@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Box, Text, useApp, useInput} from 'ink';
 import type {Screen} from '../types/index.js';
 import {useCopilot} from '../context/CopilotContext.js';
+import {useJira} from '../context/JiraContext.js';
 import {getSourceDisplayName} from '../utils/copilot.js';
 
 const palette = {
@@ -44,6 +45,12 @@ const menuItems: MenuItemData[] = [
     category: 'agents',
   },
   {
+    label: 'Sprint Tickets',
+    value: 'sprint',
+    description: 'View & select JIRA tickets',
+    category: 'agents',
+  },
+  {
     label: 'Test Watcher',
     value: 'test-watcher',
     description: 'Auto-generate tests on file changes',
@@ -72,6 +79,7 @@ const menuItems: MenuItemData[] = [
 export const Menu: React.FC<MenuProps> = ({onSelect}) => {
   const {exit} = useApp();
   const {authState} = useCopilot();
+  const {state: jiraState} = useJira();
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useInput((input, key) => {
@@ -107,6 +115,7 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
     const isSelected = globalIndex === selectedIndex;
     const isCopilot = item.value === 'copilot-connect';
     const isModelSelect = item.value === 'model-select';
+    const isSprint = item.value === 'sprint';
 
     return (
       <Box key={item.value}>
@@ -121,6 +130,10 @@ export const Menu: React.FC<MenuProps> = ({onSelect}) => {
           </Text>
         ) : isModelSelect && authState.isConnected ? (
           <Text color={palette.cyan}> [{authState.selectedModel}]</Text>
+        ) : isSprint && jiraState.isConnected ? (
+          <Text color={palette.green}> [Connected]</Text>
+        ) : isSprint && !jiraState.isConnected && jiraState.isInitialized ? (
+          <Text color={palette.yellow}> [Not connected]</Text>
         ) : (
           item.description && (
             <Text color={palette.dim}> ({item.description})</Text>
