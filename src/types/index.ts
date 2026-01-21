@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings' | 'sprint';
 
 export interface MenuItem {
   label: string;
@@ -185,4 +185,28 @@ export interface ActionableError {
   suggestion?: string;
   retryable: boolean;
   details?: string;
+}
+
+// JIRA Types
+export interface JiraTicket {
+  id: string;
+  key: string;           // e.g., 'PROJ-123'
+  summary: string;
+  status: string;        // e.g., 'In Progress', 'To Do'
+  priority: 'Highest' | 'High' | 'Medium' | 'Low' | 'Lowest' | string;
+  storyPoints?: number;
+}
+
+export interface JiraSprint {
+  id: number;
+  name: string;
+  state: 'active' | 'future' | 'closed';
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface JiraBoard {
+  id: number;
+  name: string;
+  type: 'scrum' | 'kanban';
 }
