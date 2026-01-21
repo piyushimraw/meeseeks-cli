@@ -14,6 +14,7 @@ export interface MeeseeksConfig {
   };
   services?: Record<string, {
     lastVerified?: string;
+    credentials?: Record<string, string>;  // Credential storage for service
   }>;
   jira?: {
     selectedBoardId?: number;      // Last used board
@@ -24,7 +25,7 @@ export interface MeeseeksConfig {
 
 function ensureConfigDir(): void {
   if (!fs.existsSync(CONFIG_DIR)) {
-    fs.mkdirSync(CONFIG_DIR, {recursive: true});
+    fs.mkdirSync(CONFIG_DIR, {recursive: true, mode: 0o700});
   }
 }
 
@@ -43,7 +44,7 @@ export function loadConfig(): MeeseeksConfig {
 
 export function saveConfig(config: MeeseeksConfig): void {
   ensureConfigDir();
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), { mode: 0o600, encoding: 'utf-8' });
 }
 
 export function saveCopilotConfig(tokenSource: TokenSource): void {
