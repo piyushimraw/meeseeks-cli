@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {Box, Text, render} from 'ink';
 import {meeseeksArt} from './ascii.js';
 import {Menu} from './components/Menu.js';
@@ -13,7 +13,7 @@ import {Settings} from './screens/Settings.js';
 import {SprintView} from './screens/SprintView.js';
 import {WorkflowWizard} from './screens/WorkflowWizard.js';
 import {CopilotProvider} from './context/CopilotContext.js';
-import {JiraProvider} from './context/JiraContext.js';
+import {JiraProvider, useJira} from './context/JiraContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
 import {CredentialProvider} from './context/CredentialContext.js';
 import type {Screen, JiraTicket} from './types/index.js';
@@ -28,6 +28,7 @@ const palette = {
 const AppContent = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('main');
   const [workflowTicket, setWorkflowTicket] = useState<JiraTicket | null>(null);
+  const { refresh } = useJira();
 
   const handleSelect = (screen: Screen, ticket?: JiraTicket) => {
     if (ticket) setWorkflowTicket(ticket);
@@ -37,6 +38,17 @@ const AppContent = () => {
   const handleBack = () => {
     setCurrentScreen('main');
   };
+
+  // Go back to sprint view (from workflow)
+  const handleBackToSprint = useCallback(() => {
+    setCurrentScreen('sprint');
+  }, []);
+
+  // Complete workflow: refresh tickets and go to sprint
+  const handleWorkflowComplete = useCallback(() => {
+    refresh();
+    setCurrentScreen('sprint');
+  }, [refresh]);
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -60,8 +72,8 @@ const AppContent = () => {
         return workflowTicket ? (
           <WorkflowWizard
             ticket={workflowTicket}
-            onBack={handleBack}
-            onComplete={handleBack}
+            onBack={handleBackToSprint}
+            onComplete={handleWorkflowComplete}
           />
         ) : (
           <SprintView onBack={handleBack} onStartWorkflow={(ticket) => handleSelect('workflow', ticket)} />

@@ -15,7 +15,7 @@ const palette = {
   dim: '#666666',
 };
 
-type ViewState = 'list' | 'actions' | 'not-configured' | 'filter';
+type ViewState = 'list' | 'actions' | 'details' | 'not-configured' | 'filter';
 
 interface SprintViewProps {
   onBack: () => void;
@@ -184,10 +184,17 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow 
         onStartWorkflow(jiraState.selectedTicket);
       } else if (input === '2') {
         // View details
-        setViewState('list');
+        setViewState('details');
       } else if (input === '3') {
         // Back to list
         setViewState('list');
+      }
+    }
+
+    // Details view
+    if (viewState === 'details') {
+      if (key.escape || input === 'b') {
+        setViewState('actions');
       }
     }
   });
@@ -332,6 +339,46 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow 
     );
   };
 
+  const renderDetails = () => {
+    const ticket = jiraState.selectedTicket;
+    if (!ticket) return null;
+
+    const priority = getPriorityIndicator(ticket.priority);
+
+    return (
+      <Box flexDirection="column">
+        <Text color={palette.cyan} bold>Ticket Details</Text>
+
+        <Box flexDirection="column" marginTop={1} marginLeft={2}>
+          <Box>
+            <Text color={palette.dim}>Key:      </Text>
+            <Text color={palette.yellow} bold>{ticket.key}</Text>
+          </Box>
+          <Box>
+            <Text color={palette.dim}>Summary:  </Text>
+            <Text>{ticket.summary}</Text>
+          </Box>
+          <Box>
+            <Text color={palette.dim}>Status:   </Text>
+            <Text color={
+              ticket.status.toLowerCase() === 'done' ? palette.green :
+              ticket.status.toLowerCase() === 'in progress' ? palette.cyan :
+              palette.yellow
+            }>{ticket.status}</Text>
+          </Box>
+          <Box>
+            <Text color={palette.dim}>Priority: </Text>
+            <Text color={priority.color}>{priority.symbol} {ticket.priority}</Text>
+          </Box>
+        </Box>
+
+        <Box marginTop={2}>
+          <Text color={palette.dim}>b/Esc Back to actions</Text>
+        </Box>
+      </Box>
+    );
+  };
+
   const renderContent = () => {
     if (viewState === 'not-configured') {
       return renderNotConfigured();
@@ -344,6 +391,9 @@ export const SprintView: React.FC<SprintViewProps> = ({ onBack, onStartWorkflow 
     }
     if (jiraState.error) {
       return renderError();
+    }
+    if (viewState === 'details') {
+      return renderDetails();
     }
     if (viewState === 'actions') {
       return renderActions();
