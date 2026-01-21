@@ -55,23 +55,38 @@ interface WorkflowWizardProps {
 export const WorkflowWizard: React.FC<WorkflowWizardProps> = ({ ticket, onBack, onComplete }) => {
   const { findTransitionToStatus, transitionTicket } = useJira();
 
-  const [state, setState] = useState<WizardState>(() => {
-    const branches = getLocalBranches();
-    const defaultBranch = getDefaultBranch();
-    const defaultIndex = branches.indexOf(defaultBranch);
-
-    return {
-      step: 'confirm-transition',
-      ticket,
-      branchName: generateBranchName(ticket.key, ticket.summary),
-      baseBranch: defaultBranch,
-      transitionSkipped: false,
-      stashed: false,
-      branches,
-      selectedBranchIndex: defaultIndex >= 0 ? defaultIndex : 0,
-      branchExistsPrompt: false,
-    };
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [state, setState] = useState<WizardState>({
+    step: 'confirm-transition',
+    ticket,
+    branchName: generateBranchName(ticket.key, ticket.summary),
+    baseBranch: 'main',
+    transitionSkipped: false,
+    stashed: false,
+    branches: [],
+    selectedBranchIndex: 0,
+    branchExistsPrompt: false,
   });
+
+  // Initialize branches asynchronously to avoid blocking the UI
+  useEffect(() => {
+    // Use setTimeout to defer the blocking git operations
+    const timer = setTimeout(() => {
+      const branches = getLocalBranches();
+      const defaultBranch = getDefaultBranch();
+      const defaultIndex = branches.indexOf(defaultBranch);
+
+      setState(prev => ({
+        ...prev,
+        branches,
+        baseBranch: defaultBranch,
+        selectedBranchIndex: defaultIndex >= 0 ? defaultIndex : 0,
+      }));
+      setIsInitializing(false);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Check if already In Progress
   const isAlreadyInProgress = ticket.status.toLowerCase() === 'in progress';
@@ -544,6 +559,21 @@ export const WorkflowWizard: React.FC<WorkflowWizardProps> = ({ ticket, onBack, 
     (s.key === 'confirm-transition' && state.step === 'transitioning') ||
     (s.key === 'creating' && state.step === 'handle-changes')
   );
+
+  // Show loading during initialization
+  if (isInitializing) {
+    return (
+      <Box flexDirection="column" marginTop={1}>
+        <Text color={palette.orange}>
+          {'+-[ Start Work: ' + ticket.key + ' ]' + '-'.repeat(Math.max(0, 45 - ticket.key.length)) + '+'}
+        </Text>
+        <Box flexDirection="column" paddingLeft={2} paddingY={2}>
+          <Spinner label="Loading workflow..." />
+        </Box>
+        <Text color={palette.orange}>{'+-' + '-'.repeat(60) + '+'}</Text>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" marginTop={1}>
