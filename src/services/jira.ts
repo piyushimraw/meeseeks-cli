@@ -8,6 +8,20 @@ interface JiraConfig {
   apiToken: string;
 }
 
+export interface JiraTransition {
+  id: string;
+  name: string;
+  to: {
+    id: string;
+    name: string;
+    statusCategory?: {
+      key: string;
+      name: string;
+    };
+  };
+  hasScreen: boolean;
+}
+
 export class JiraService {
   private agileClient: AgileClient;
   private v2Client: Version2Client;
@@ -135,6 +149,63 @@ export class JiraService {
       console.error('Failed to fetch issues:', error);
       throw error;
     }
+  }
+
+  /**
+   * Get available transitions for a ticket
+   */
+  async getTransitions(issueKey: string): Promise<JiraTransition[]> {
+    try {
+      const response = await this.v2Client.issues.getTransitions({
+        issueIdOrKey: issueKey,
+      });
+      return (response.transitions || []).map(t => ({
+        id: t.id!,
+        name: t.name || '',
+        to: {
+          id: t.to?.id || '',
+          name: t.to?.name || '',
+          statusCategory: t.to?.statusCategory ? {
+            key: t.to.statusCategory.key || '',
+            name: t.to.statusCategory.name || '',
+          } : undefined,
+        },
+        hasScreen: t.hasScreen || false,
+      }));
+    } catch (error) {
+      console.error('Failed to fetch transitions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Transition a ticket to a new status
+   */
+  async transitionTicket(issueKey: string, transitionId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await this.v2Client.issues.doTransition({
+        issueIdOrKey: issueKey,
+        transition: {
+          id: transitionId,
+        },
+      });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Transition failed',
+      };
+    }
+  }
+
+  /**
+   * Find transition that leads to target status (case-insensitive match)
+   */
+  async findTransitionToStatus(issueKey: string, targetStatus: string): Promise<JiraTransition | null> {
+    const transitions = await this.getTransitions(issueKey);
+    return transitions.find(
+      t => t.to.name.toLowerCase() === targetStatus.toLowerCase()
+    ) || null;
   }
 }
 
