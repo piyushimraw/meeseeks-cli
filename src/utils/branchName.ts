@@ -1,8 +1,7 @@
-import { createRequire } from 'module';
 import { runGit } from './git.js';
+import slugifyLib from 'slugify';
 
-const require = createRequire(import.meta.url);
-const slugify = require('slugify') as (text: string, options?: {
+const slugify = slugifyLib as (text: string, options?: {
   replacement?: string;
   remove?: RegExp;
   lower?: boolean;

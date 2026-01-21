@@ -1,11 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { createRequire } from 'module';
+import slugifyLib from 'slugify';
 import type { PlanMetadata, PlanType, ExistingPlans } from '../types/index.js';
 
-// ESM compatibility for slugify (same pattern as branchName.ts)
-const require = createRequire(import.meta.url);
-const slugify = require('slugify') as (text: string, options?: {
+const slugify = slugifyLib as (text: string, options?: {
   replacement?: string;
   remove?: RegExp;
   lower?: boolean;
