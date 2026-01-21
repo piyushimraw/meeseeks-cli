@@ -15,6 +15,11 @@ export interface MeeseeksConfig {
   services?: Record<string, {
     lastVerified?: string;
   }>;
+  jira?: {
+    selectedBoardId?: number;      // Last used board
+    selectedTicketKey?: string;    // Currently selected ticket (restore on restart)
+    storyPointsFieldId?: string;   // Cached custom field ID (future)
+  };
 }
 
 function ensureConfigDir(): void {
