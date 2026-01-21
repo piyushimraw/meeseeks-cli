@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings' | 'sprint' | 'workflow';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings' | 'sprint' | 'workflow' | 'plan-generator';
 
 export interface MenuItem {
   label: string;
@@ -209,4 +209,31 @@ export interface JiraBoard {
   id: number;
   name: string;
   type: 'scrum' | 'kanban';
+}
+
+// Plan Generation Types
+export type PlanType = 'impl' | 'verify';
+
+export interface PlanMetadata {
+  ticketKey: string;
+  ticketSummary: string;
+  planType: PlanType;
+  generatedAt: string;
+  model: string;
+  kbUsed?: string;
+}
+
+export interface ClarifyingQuestion {
+  id: string;
+  question: string;
+  options: string[];  // Pre-generated choices from AI
+  allowOther: boolean; // Always true per decisions
+  answer?: string;
+}
+
+export interface ExistingPlans {
+  impl: boolean;
+  verify: boolean;
+  implPath?: string;
+  verifyPath?: string;
 }
