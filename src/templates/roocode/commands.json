@@ -1,0 +1,54 @@
+{
+  "extension": "roocode",
+  "targetDir": ".roo",
+  "commands": [
+    {
+      "name": "prime",
+      "description": "Analyze codebase and generate context files",
+      "agent": "codebase-analyzer",
+      "model": "claude-sonnet-4-20250514",
+      "tools": ["Read", "Glob", "Grep", "Bash"],
+      "outputFiles": ["ARCHITECTURE.md", "CONVENTION.md", "INTEGRATION.md", "STACK.md", "STRUCTURE.md"]
+    },
+    {
+      "name": "plan",
+      "description": "Create implementation plan from ticket or description",
+      "agent": "planner",
+      "model": "claude-sonnet-4-20250514",
+      "tools": ["Read", "Glob", "Grep", "WebFetch", "mcp__atlassian__*"],
+      "outputFiles": ["plans/{ticket}-plan.md", "plans/{ticket}-context.md"]
+    },
+    {
+      "name": "define-acceptance",
+      "description": "Generate acceptance criteria and verification tests",
+      "agent": "qa-engineer",
+      "model": "claude-sonnet-4-20250514",
+      "tools": ["Read", "Glob", "Grep", "Write"],
+      "outputFiles": ["plans/{ticket}-acceptance.md", "tests/{ticket}-verification.test.ts"]
+    },
+    {
+      "name": "execute",
+      "description": "Execute a plan with progress tracking",
+      "agent": "executor",
+      "model": "claude-sonnet-4-20250514",
+      "tools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+      "outputFiles": ["progress.txt"]
+    },
+    {
+      "name": "verify",
+      "description": "Run verification tests and manual checks",
+      "agent": "verifier",
+      "model": "claude-sonnet-4-20250514",
+      "tools": ["Read", "Bash", "Glob", "Grep"],
+      "outputFiles": ["verification-report.md"]
+    },
+    {
+      "name": "status",
+      "description": "Show current plan, progress, and verification state",
+      "agent": "status-reporter",
+      "model": "claude-sonnet-4-20250514",
+      "tools": ["Read", "Glob"],
+      "outputFiles": []
+    }
+  ]
+}
