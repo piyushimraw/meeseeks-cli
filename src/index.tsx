@@ -13,6 +13,7 @@ import {Settings} from './screens/Settings.js';
 import {SprintView} from './screens/SprintView.js';
 import {WorkflowWizard} from './screens/WorkflowWizard.js';
 import {PlanGenerator} from './screens/PlanGenerator.js';
+import {MetaPromptInit} from './screens/MetaPromptInit.js';
 import {CopilotProvider} from './context/CopilotContext.js';
 import {JiraProvider, useJira} from './context/JiraContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
@@ -121,6 +122,8 @@ const AppContent = () => {
             onGeneratePlan={handleGeneratePlan}
           />
         );
+      case 'meta-init':
+        return <MetaPromptInit onBack={handleBack} />;
       case 'main':
       default:
         return <Menu onSelect={handleSelect} />;

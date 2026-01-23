@@ -57,6 +57,12 @@ const menuItems: MenuItemData[] = [
     category: 'agents',
   },
   {
+    label: 'Meta Prompting Setup',
+    value: 'meta-init',
+    description: 'Generate RooCode/KiloCode files',
+    category: 'tools',
+  },
+  {
     label: 'View Git Changes',
     value: 'git-changes',
     description: 'See modified files in project',
