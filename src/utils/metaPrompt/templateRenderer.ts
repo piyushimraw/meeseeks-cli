@@ -1,5 +1,8 @@
-import matter from 'gray-matter';
+import * as matterModule from 'gray-matter';
 import type { MetaPromptExtension } from '../../types/index.js';
+
+// gray-matter exports as default, access it via .default
+const matter = (matterModule as any).default || matterModule;
 
 interface PromptFrontmatter {
   agent: string;
@@ -53,7 +56,7 @@ export function renderTemplate(
  * Parse a prompt file to extract frontmatter and content
  */
 export function parsePromptFile(content: string): { frontmatter: PromptFrontmatter; content: string } {
-  const parsed = matter(content);
+  const parsed = (matter as any)(content);
   return {
     frontmatter: parsed.data as PromptFrontmatter,
     content: parsed.content,
