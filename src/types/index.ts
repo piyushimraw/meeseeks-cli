@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings' | 'sprint' | 'workflow' | 'plan-generator';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings' | 'sprint' | 'workflow' | 'plan-generator' | 'meta-init';
 
 export interface MenuItem {
   label: string;
@@ -237,3 +237,6 @@ export interface ExistingPlans {
   implPath?: string;
   verifyPath?: string;
 }
+
+// Meta Prompting Types
+export type MetaPromptExtension = 'roocode' | 'kilocode';
