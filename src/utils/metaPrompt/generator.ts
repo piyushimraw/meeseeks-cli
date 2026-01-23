@@ -16,8 +16,24 @@ export function ensureTargetDir(targetDir: string): void {
  * Get the target directory for an extension
  */
 export function getTargetDir(projectRoot: string, extension: MetaPromptExtension): string {
-  const dir = extension === 'roocode' ? '.roo' : '.kilo';
+  const dir = extension === 'roocode' ? '.roo' : '.kilocode/workflows';
   return path.join(projectRoot, dir);
+}
+
+/**
+ * Get the commands subdirectory for an extension
+ * RooCode uses a commands/ subdirectory, KiloCode puts files directly in workflows/
+ */
+export function getCommandsSubdir(extension: MetaPromptExtension): string {
+  return extension === 'roocode' ? 'commands' : '';
+}
+
+/**
+ * Get the output file extension for an extension
+ * RooCode uses .md, KiloCode uses .prompt.md
+ */
+export function getOutputExtension(extension: MetaPromptExtension): string {
+  return extension === 'roocode' ? '.md' : '.prompt.md';
 }
 
 /**

@@ -6,6 +6,8 @@ import { detectTechStack, hashTechStack } from '../utils/metaPrompt/techStackDet
 import {
   ensureTargetDir,
   getTargetDir,
+  getCommandsSubdir,
+  getOutputExtension,
   checkExistingFile,
   generateFile,
   generateIndexMd,
@@ -120,9 +122,14 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
         }
 
         // Also check command files
-        const commandFiles = ['plan', 'define-acceptance', 'execute', 'verify', 'status'];
-        for (const cmd of commandFiles) {
-          const filePath = path.join(state.targetDir!, 'commands', `${cmd}.prompt.md`);
+        const commandFileNames = ['prime', 'plan', 'define-acceptance', 'execute', 'verify', 'status'];
+        const commandsSubdir = state.extension === 'roocode' ? 'commands' : '';
+        const outputExt = state.extension === 'roocode' ? '.md' : '.prompt.md';
+
+        for (const cmd of commandFileNames) {
+          const filePath = commandsSubdir
+            ? path.join(state.targetDir!, commandsSubdir, `${cmd}${outputExt}`)
+            : path.join(state.targetDir!, `${cmd}${outputExt}`);
           const existing = checkExistingFile(filePath);
 
           if (existing.exists && existing.content) {
@@ -177,6 +184,7 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
 
           // Copy command templates from bundled templates
           const commandFiles = [
+            { name: 'prime', source: 'prime.prompt.md' },
             { name: 'plan', source: 'plan.prompt.md' },
             { name: 'define-acceptance', source: 'define-acceptance.prompt.md' },
             { name: 'execute', source: 'execute.prompt.md' },
@@ -189,9 +197,22 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
           const __dirname = dirname(__filename);
           const templatesBaseDir = path.join(__dirname, '..', 'templates', state.extension!);
 
+          const commandsSubdir = getCommandsSubdir(state.extension!);
+          const outputExt = getOutputExtension(state.extension!);
+
           for (const cmd of commandFiles) {
             const sourcePath = path.join(templatesBaseDir, 'commands', cmd.source);
-            const targetPath = path.join(state.targetDir!, 'commands', cmd.source);
+
+            // Determine output filename with correct extension
+            const outputFilename = state.extension === 'roocode'
+              ? `${cmd.name}.md`  // RooCode: rename .prompt.md to .md
+              : `${cmd.name}.prompt.md`;  // KiloCode: keep .prompt.md
+
+            // Determine target path with correct subdirectory
+            const targetPath = commandsSubdir
+              ? path.join(state.targetDir!, commandsSubdir, outputFilename)
+              : path.join(state.targetDir!, outputFilename);
+
             const choice = state.overwriteChoices.get(targetPath) || 'overwrite';
 
             if (choice !== 'skip') {
@@ -513,6 +534,9 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
                 </Text>
               ))}
             </Box>
+          )}
+          {created === 0 && updated === 0 && skipped === 0 && errors.length === 0 && (
+            <Text color={palette.dim}>No files were processed.</Text>
           )}
         </Box>
         <Box marginTop={2} marginLeft={2}>
