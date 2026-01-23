@@ -1,5 +1,8 @@
 import type { MetaPromptExtension } from '../../types/index.js';
 
+// Re-export MetaPromptExtension for convenience
+export type { MetaPromptExtension } from '../../types/index.js';
+
 // Tech Stack Detection
 export interface TechStack {
   runtime: 'Node.js' | 'Python' | 'Rust' | 'Go' | 'unknown';
