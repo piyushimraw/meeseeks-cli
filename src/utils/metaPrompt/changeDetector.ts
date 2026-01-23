@@ -1,4 +1,4 @@
-import simpleGit, { SimpleGit } from 'simple-git';
+import { simpleGit, SimpleGit } from 'simple-git';
 import path from 'path';
 import type { PrimeFile } from './types.js';
 
@@ -14,7 +14,7 @@ export interface ChangeDetectionResult {
  * Get the current HEAD commit hash
  */
 export async function getCurrentCommit(projectRoot: string): Promise<string> {
-  const git: SimpleGit = simpleGit(projectRoot);
+  const git = simpleGit(projectRoot);
   const log = await git.log({ maxCount: 1 });
   return log.latest?.hash || '';
 }
@@ -26,7 +26,7 @@ export async function getChangedFilesSince(
   projectRoot: string,
   sinceCommit: string
 ): Promise<string[]> {
-  const git: SimpleGit = simpleGit(projectRoot);
+  const git = simpleGit(projectRoot);
 
   try {
     // Get diff summary between the commit and HEAD

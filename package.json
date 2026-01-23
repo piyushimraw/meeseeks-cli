@@ -43,7 +43,7 @@
   },
   "scripts": {
     "start": "tsx src/index.tsx",
-    "build": "tsc",
+    "build": "tsc && copyfiles -u 1 \"src/templates/**/*\" dist",
     "prepublishOnly": "npm run build",
     "meeseeks": "node dist/index.js",
     "link": "npm run build && npm link",
@@ -76,6 +76,7 @@
     "@types/node": "^20.14.11",
     "@types/react": "^18.3.3",
     "@yao-pkg/pkg": "^6.12.0",
+    "copyfiles": "^2.4.1",
     "esbuild": "^0.27.2",
     "tsx": "^4.19.1",
     "typescript": "^5.5.4"

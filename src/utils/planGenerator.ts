@@ -3,14 +3,7 @@ import * as path from 'path';
 import slugifyLib from 'slugify';
 import type { PlanMetadata, PlanType, ExistingPlans } from '../types/index.js';
 
-const slugify = slugifyLib as (text: string, options?: {
-  replacement?: string;
-  remove?: RegExp;
-  lower?: boolean;
-  strict?: boolean;
-  locale?: string;
-  trim?: boolean;
-}) => string;
+const slugify = (slugifyLib as any).default || slugifyLib;
 
 const PLANS_DIR = 'plans';
 

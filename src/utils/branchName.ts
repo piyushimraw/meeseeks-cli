@@ -1,14 +1,7 @@
 import { runGit } from './git.js';
 import slugifyLib from 'slugify';
 
-const slugify = slugifyLib as (text: string, options?: {
-  replacement?: string;
-  remove?: RegExp;
-  lower?: boolean;
-  strict?: boolean;
-  locale?: string;
-  trim?: boolean;
-}) => string;
+const slugify = (slugifyLib as any).default || slugifyLib;
 
 const MAX_BRANCH_LENGTH = 50;
 
