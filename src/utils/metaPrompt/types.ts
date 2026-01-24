@@ -58,3 +58,50 @@ export interface PrimeMetadata {
   filesGenerated: string[];
   techStackHash: string;  // Hash of detected stack for change detection
 }
+
+// Custom Mode Workflow Types (Phase 7.1)
+
+/**
+ * Mode names for KiloCode custom modes workflow
+ */
+export type MeeseeksMode =
+  | 'orchestrate'
+  | 'discuss'
+  | 'plan'
+  | 'generate-verification'
+  | 'execute'
+  | 'verify';
+
+/**
+ * Checkpoint data for resumable execution within a mode
+ * Follows Microsoft Agent Framework checkpoint pattern
+ */
+export interface CheckpointData {
+  phase: string;              // Current phase within mode (e.g., "requirements_complete")
+  completed_steps: string[];  // What's been done
+  next_action: string;        // What to do next
+}
+
+/**
+ * State handoff structure between modes
+ * Stored in .meeseeks/tasks/{task-key}/state.json
+ * Follows Microsoft Agent Framework handoff orchestration pattern
+ */
+export interface HandoffState {
+  schemaVersion: string;        // "1.0" - for future compatibility and migrations
+  task_key: string;             // "PROJ-123" or generated slug
+  current_mode: MeeseeksMode;   // Which mode should run next
+  files_created: string[];      // Paths to artifacts created (context.md, plan.md, etc.)
+  checkpoint_data: CheckpointData;
+  last_updated: string;         // ISO 8601 timestamp
+  trace_id?: string;            // Optional correlation ID for debugging
+}
+
+/**
+ * Result of detecting existing work
+ */
+export interface ExistingWorkResult {
+  exists: boolean;
+  state?: HandoffState;
+  taskDir?: string;
+}
