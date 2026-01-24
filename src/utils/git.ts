@@ -65,7 +65,7 @@ export function getCurrentBranch(): string | null {
   return null;
 }
 
-function parseStatusCode(code: string): 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked' {
+export function parseStatusCode(code: string): 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked' {
   switch (code) {
     case 'A':
       return 'added';
@@ -80,6 +80,62 @@ function parseStatusCode(code: string): 'added' | 'modified' | 'deleted' | 'rena
     default:
       return 'modified';
   }
+}
+
+/**
+ * Parse a single line of git status porcelain output into GitFileChange objects
+ * @param line A line from `git status --porcelain=v1` output
+ * @returns Array of GitFileChange objects (may be empty, one, or two items)
+ */
+export function parseStatusLine(line: string): GitFileChange[] {
+  const changes: GitFileChange[] = [];
+
+  if (line.length < 3) {
+    return changes;
+  }
+
+  const stagedCode = line[0];
+  const unstagedCode = line[1];
+  let filePath = line.slice(3);
+  let oldPath: string | undefined;
+
+  // Handle renamed files (format: "R  old -> new" or "RM old -> new")
+  if (filePath.includes(' -> ')) {
+    const parts = filePath.split(' -> ');
+    oldPath = parts[0];
+    filePath = parts[1];
+  }
+
+  // Staged changes (index column is not space or ?)
+  if (stagedCode !== ' ' && stagedCode !== '?') {
+    changes.push({
+      path: filePath,
+      status: parseStatusCode(stagedCode),
+      staged: true,
+      oldPath,
+    });
+  }
+
+  // Unstaged changes (worktree column is not space)
+  if (unstagedCode !== ' ' && unstagedCode !== '?') {
+    changes.push({
+      path: filePath,
+      status: parseStatusCode(unstagedCode),
+      staged: false,
+      oldPath,
+    });
+  }
+
+  // Untracked files
+  if (stagedCode === '?' && unstagedCode === '?') {
+    changes.push({
+      path: filePath,
+      status: 'untracked',
+      staged: false,
+    });
+  }
+
+  return changes;
 }
 
 export function getGitStatus(): GitStatus {
@@ -118,46 +174,7 @@ export function getGitStatus(): GitStatus {
   const lines = result.stdout.split('\n').filter((line) => line.length > 0);
 
   for (const line of lines) {
-    const stagedCode = line[0];
-    const unstagedCode = line[1];
-    let filePath = line.slice(3);
-    let oldPath: string | undefined;
-
-    // Handle renamed files (format: "R  old -> new" or "RM old -> new")
-    if (filePath.includes(' -> ')) {
-      const parts = filePath.split(' -> ');
-      oldPath = parts[0];
-      filePath = parts[1];
-    }
-
-    // Staged changes (index column is not space or ?)
-    if (stagedCode !== ' ' && stagedCode !== '?') {
-      changes.push({
-        path: filePath,
-        status: parseStatusCode(stagedCode),
-        staged: true,
-        oldPath,
-      });
-    }
-
-    // Unstaged changes (worktree column is not space)
-    if (unstagedCode !== ' ' && unstagedCode !== '?') {
-      changes.push({
-        path: filePath,
-        status: parseStatusCode(unstagedCode),
-        staged: false,
-        oldPath,
-      });
-    }
-
-    // Untracked files
-    if (stagedCode === '?' && unstagedCode === '?') {
-      changes.push({
-        path: filePath,
-        status: 'untracked',
-        staged: false,
-      });
-    }
+    changes.push(...parseStatusLine(line));
   }
 
   return {
