@@ -229,6 +229,278 @@ test.describe('{Feature} E2E', () => {
 - Accessibility compliance
 - Mobile responsive testing
 
+---
+
+## Phase: Write Test Files
+
+After generating test specifications above, CREATE the actual test files:
+
+### 1. Detect Test Location Convention
+
+```bash
+# Check for existing patterns
+ls tests/**/*.test.ts 2>/dev/null || ls src/**/*.test.ts 2>/dev/null
+ls tests/**/*.spec.ts 2>/dev/null || ls src/**/*.spec.ts 2>/dev/null
+```
+
+**Pattern Detection:**
+- If `tests/` folder exists with test files → use separate tests/ folder
+- If `*.test.ts` files exist alongside source → use co-located pattern
+- Default: co-located (src/foo.ts → src/foo.test.ts)
+
+### 2. Write Unit Test Files
+
+For each unit test specification:
+
+1. **Determine test file path**:
+   - Co-located: `{source-dir}/{file}.test.{ext}`
+   - Separate: `tests/unit/{feature}.test.{ext}`
+
+2. **Generate comprehensive tests** based on:
+   - The specification skeleton from section above
+   - The source file to be tested (from plan.md)
+   - Project testing rules from `.meeseeks/rules/test.md` (if exists)
+
+3. **Write test file** with:
+   - Proper imports for test framework (Jest/Vitest/pytest)
+   - Describe blocks matching specification
+   - Individual test cases with Arrange/Act/Assert pattern
+   - Edge case and error condition tests
+
+4. **Log creation**:
+   ```
+   [Test-Gen] Created {path} ({N} tests)
+   ```
+
+**Example Unit Test Output:**
+
+```typescript
+// tests/unit/auth.test.ts
+import { describe, it, expect, vi } from 'vitest';
+import { validateCredentials, hashPassword } from '../../src/auth';
+
+describe('validateCredentials', () => {
+  it('should return true for valid email and password', () => {
+    const result = validateCredentials('user@example.com', 'SecurePass123!');
+    expect(result.valid).toBe(true);
+  });
+
+  it('should return false for invalid email format', () => {
+    const result = validateCredentials('invalid-email', 'SecurePass123!');
+    expect(result.valid).toBe(false);
+    expect(result.error).toBe('Invalid email format');
+  });
+
+  it('should return false for password too short', () => {
+    const result = validateCredentials('user@example.com', 'short');
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('password');
+  });
+});
+```
+
+### 3. Write Integration Test Files
+
+For each integration test specification:
+
+1. **Create test file** at `tests/integration/{feature}.integration.test.{ext}`
+
+2. **Include**:
+   - Setup/teardown hooks (beforeAll, afterAll)
+   - API mocking or test database setup
+   - Endpoint tests with various HTTP methods
+   - Error response validation
+
+3. **Log creation**:
+   ```
+   [Test-Gen] Created {path} ({N} integration tests)
+   ```
+
+**Example Integration Test Output:**
+
+```typescript
+// tests/integration/api-users.integration.test.ts
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import { app } from '../../src/app';
+import { setupTestDb, teardownTestDb } from '../helpers/db';
+
+describe('Users API Integration', () => {
+  beforeAll(async () => {
+    await setupTestDb();
+  });
+
+  afterAll(async () => {
+    await teardownTestDb();
+  });
+
+  describe('POST /api/users', () => {
+    it('should create user with valid data (201)', async () => {
+      const response = await request(app)
+        .post('/api/users')
+        .send({ email: 'new@example.com', name: 'Test User' })
+        .expect(201);
+
+      expect(response.body).toMatchObject({
+        id: expect.any(String),
+        email: 'new@example.com',
+        name: 'Test User'
+      });
+    });
+
+    it('should return 400 for missing required fields', async () => {
+      const response = await request(app)
+        .post('/api/users')
+        .send({ name: 'Test User' }) // missing email
+        .expect(400);
+
+      expect(response.body.error).toContain('email');
+    });
+  });
+});
+```
+
+### 4. Write Browser/E2E Test Files (if applicable)
+
+For each browser test specification:
+
+1. **Create test file** at `tests/e2e/{feature}.spec.{ext}`
+
+2. **Include**:
+   - Page navigation and setup
+   - User interaction steps
+   - Visual assertions and screenshots
+   - Accessibility checks
+
+3. **Log creation**:
+   ```
+   [Test-Gen] Created {path} ({N} E2E tests)
+   ```
+
+---
+
+## Phase: Generate AI-Assisted Testing Prompts
+
+Create prompts for verification that requires human judgment or AI-assisted analysis:
+
+### 1. Create Prompt Directory
+
+```bash
+mkdir -p .meeseeks/tasks/{task-key}/ai-tests
+```
+
+### 2. Identify AI-Assisted Test Candidates
+
+For each acceptance criterion, determine if it requires:
+- **Visual verification**: UI appearance, layout, design fidelity
+- **Complex user flows**: Multi-step interactions, state transitions
+- **Subjective evaluation**: UX quality, clarity of messaging
+- **Data validation**: Complex business rules, calculated outputs
+
+### 3. Generate Prompt Files
+
+For each AI-assisted test candidate, create `.meeseeks/tasks/{task-key}/ai-tests/{test-name}.md`:
+
+```markdown
+# AI-Assisted Test: {test-name}
+
+## Context
+- **Related AC**: {acceptance-criteria-id}
+- **Feature**: {description}
+- **Type**: visual-verification | behavior-analysis | data-validation | ux-evaluation
+
+## Pre-conditions
+- {setup requirement 1}
+- {setup requirement 2}
+
+## Test Steps
+
+1. {Natural language step 1}
+2. {Natural language step 2}
+3. {Natural language step 3}
+
+## Expected Outcomes
+- [ ] {outcome 1}
+- [ ] {outcome 2}
+- [ ] {outcome 3}
+
+## Evidence Required
+- screenshot: {name}.png (if visual verification)
+- console-output: {description} (if data validation)
+- user-feedback: {question to ask} (if ux evaluation)
+
+## Verification Questions
+1. {Specific question for the verifier}
+2. {Another verification question}
+```
+
+**Example AI-Assisted Test Prompt:**
+
+```markdown
+# AI-Assisted Test: login-form-visual
+
+## Context
+- **Related AC**: AC-1 (User can log in)
+- **Feature**: Login form UI and validation feedback
+- **Type**: visual-verification
+
+## Pre-conditions
+- Application is running at localhost:3000
+- No user is currently logged in
+
+## Test Steps
+
+1. Navigate to /login page
+2. Leave both fields empty and click "Sign In"
+3. Enter invalid email format and click "Sign In"
+4. Enter valid email but wrong password and click "Sign In"
+5. Enter valid credentials and click "Sign In"
+
+## Expected Outcomes
+- [ ] Empty field errors show red borders and helper text
+- [ ] Invalid email shows specific format error
+- [ ] Wrong password shows generic "Invalid credentials" (not "wrong password")
+- [ ] Successful login redirects to dashboard
+- [ ] Loading state shows during authentication
+
+## Evidence Required
+- screenshot: login-empty-errors.png
+- screenshot: login-invalid-email.png
+- screenshot: login-success-redirect.png
+
+## Verification Questions
+1. Are error messages clear and actionable?
+2. Is the loading state visible long enough to notice?
+3. Does the form feel responsive and polished?
+```
+
+### 4. Update verification.md with AI-Assisted Tests
+
+Add section to verification.md referencing the generated prompts:
+
+```markdown
+## AI-Assisted Tests
+
+> These tests require human judgment or AI-assisted verification.
+> Execute in `/meeseeks:verify` mode.
+
+| Prompt File | Type | AC Coverage | Priority |
+|-------------|------|-------------|----------|
+| ai-tests/login-form-visual.md | visual-verification | AC-1 | High |
+| ai-tests/dashboard-ux.md | ux-evaluation | AC-3 | Medium |
+| ai-tests/report-data-validation.md | data-validation | AC-5 | High |
+```
+
+### 5. Log AI-Assisted Test Generation
+
+```
+[Test-Gen] Created {N} AI-assisted test prompts:
+  - ai-tests/{name1}.md (visual-verification)
+  - ai-tests/{name2}.md (behavior-analysis)
+```
+
+---
+
 ## Create verification.md
 
 Create `.meeseeks/tasks/{task-key}/verification.md`:
@@ -566,11 +838,20 @@ Update `.meeseeks/tasks/{task-key}/state.json`:
     ".meeseeks/tasks/{task-key}/plan.md",
     ".meeseeks/tasks/{task-key}/verification.md"
   ],
+  "test_files_generated": [
+    "tests/unit/{feature}.test.ts",
+    "tests/integration/{api}.integration.test.ts",
+    "tests/e2e/{feature}.spec.ts"
+  ],
+  "ai_test_prompts": [
+    ".meeseeks/tasks/{task-key}/ai-tests/{test-name}.md"
+  ],
   "verification_summary": {
     "unit_tests": {count},
     "integration_tests": {count},
     "browser_tests": {count},
-    "uat_scenarios": {count}
+    "uat_scenarios": {count},
+    "ai_assisted_tests": {count}
   },
   "checkpoint_data": {
     "phase": "verification_plan_complete",
@@ -581,6 +862,10 @@ Update `.meeseeks/tasks/{task-key}/state.json`:
       "created_integration_test_specs",
       "created_browser_test_specs",
       "created_uat_scenarios",
+      "wrote_unit_test_files",
+      "wrote_integration_test_files",
+      "wrote_browser_test_files",
+      "generated_ai_test_prompts",
       "created_verification_md"
     ],
     "next_action": "start_execute"
@@ -596,11 +881,19 @@ Update `.meeseeks/tasks/{task-key}/state.json`:
 | Verification plan created: .meeseeks/tasks/{task-key}/verification.md       |
 +----------------------------------------------------------------------------+
 
-Test Plan Summary:
+Test Files Generated:
 - Unit Tests: {N} tests across {M} files
+  {list of test file paths}
 - Integration Tests: {P} tests across {Q} files
+  {list of test file paths}
 - Browser Tests: {R} tests across {S} files
-- UAT Scenarios: {T} manual verification scenarios
+  {list of test file paths}
+
+AI-Assisted Test Prompts:
+- {X} prompts in .meeseeks/tasks/{task-key}/ai-tests/
+  {list of prompt files}
+
+UAT Scenarios: {T} manual verification scenarios
 
 Test Frameworks Detected:
 - Unit: {Jest/Vitest/pytest}
@@ -611,14 +904,15 @@ Test Frameworks Detected:
 
 The execute mode will:
 1. Implement each step from plan.md
-2. Write test files from verification.md specs
-3. Track progress in progress.log
-4. Run tests after each implementation step
+2. Run generated test files to verify each step
+3. Track progress in progress.txt
+4. Ensure tests pass after each implementation step
 
 After execute completes, /meeseeks:verify will:
-1. Run all automated tests
-2. Guide you through UAT scenarios
-3. Complete the verification checklist
+1. Run all automated tests (unit, integration, browser)
+2. Execute AI-assisted test prompts interactively
+3. Conduct interactive UAT interview
+4. Generate comprehensive verification report
 ```
 
 ## Error Handling
