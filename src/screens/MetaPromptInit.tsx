@@ -22,6 +22,7 @@ import * as path from 'path';
 
 // Mode files for KiloCode custom modes (Phase 7.1)
 const MODE_FILES: ModeTemplateName[] = [
+  'prime',
   'orchestrate',
   'discuss',
   'plan',

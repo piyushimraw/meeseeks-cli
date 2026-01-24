@@ -1,6 +1,14 @@
 {
   "customModes": [
     {
+      "slug": "meeseeks-prime",
+      "name": "Meeseeks: Prime",
+      "description": "Analyze codebase and generate context files (ARCHITECTURE.md, CONVENTION.md, INDEX.md, INTEGRATION.md, STACK.md, STRUCTURE.md)",
+      "whenToUse": "Use when setting up a new project for meeseeks workflow, or when codebase has changed significantly. Must run before meeseeks:orchestrate.",
+      "roleDefinition": "You are a codebase analysis specialist.\n\nRead @.kilocode/workflows/modes/meeseeks-prime.prompt.md for full instructions.\n\nYour job is to:\n1. Detect tech stack from manifest files (package.json, requirements.txt, etc.)\n2. Analyze architecture patterns, conventions, integrations\n3. Generate 6 context files in .kilocode/workflows/context/\n4. Save metadata to .meeseeks/prime-meta.json\n\nThese context files are prerequisites for the meeseeks development workflow.",
+      "groups": ["read", "edit", "command"]
+    },
+    {
       "slug": "meeseeks-orchestrate",
       "name": "Meeseeks: Orchestrate",
       "description": "Start a new development task - validates prerequisites and creates task directory",
