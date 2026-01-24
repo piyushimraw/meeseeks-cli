@@ -15,11 +15,9 @@ import {
   savePrimeMetadata,
 } from '../utils/metaPrompt/generator.js';
 import { generatePrimeStub, getAllPrimeFileNames } from '../utils/metaPrompt/primeAnalyzer.js';
+import { getEmbeddedTemplate, type TemplateName } from '../utils/metaPrompt/embeddedTemplates.js';
 import type { TechStack, OverwriteChoice, FileGenerationResult } from '../utils/metaPrompt/types.js';
-import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
 const palette = {
   cyan: '#00DFFF',
@@ -182,26 +180,22 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
             }
           }
 
-          // Copy command templates from bundled templates
+          // Copy command templates from embedded templates
           const commandFiles = [
-            { name: 'prime', source: 'prime.prompt.md' },
-            { name: 'plan', source: 'plan.prompt.md' },
-            { name: 'define-acceptance', source: 'define-acceptance.prompt.md' },
-            { name: 'execute', source: 'execute.prompt.md' },
-            { name: 'verify', source: 'verify.prompt.md' },
-            { name: 'status', source: 'status.prompt.md' },
+            { name: 'prime' },
+            { name: 'plan' },
+            { name: 'define-acceptance' },
+            { name: 'execute' },
+            { name: 'verify' },
+            { name: 'status' },
           ];
-
-          // Get template path relative to compiled code
-          const __filename = fileURLToPath(import.meta.url);
-          const __dirname = dirname(__filename);
-          const templatesBaseDir = path.join(__dirname, '..', 'templates', state.extension!);
 
           const commandsSubdir = getCommandsSubdir(state.extension!);
           const outputExt = getOutputExtension(state.extension!);
 
           for (const cmd of commandFiles) {
-            const sourcePath = path.join(templatesBaseDir, 'commands', cmd.source);
+            // Get content from embedded templates
+            const content = getEmbeddedTemplate(state.extension!, cmd.name as TemplateName);
 
             // Determine output filename with correct extension
             const outputFilename = state.extension === 'roocode'
@@ -216,20 +210,6 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
             const choice = state.overwriteChoices.get(targetPath) || 'overwrite';
 
             if (choice !== 'skip') {
-              // Check if source exists (for development with tsx vs built)
-              let content: string;
-              if (fs.existsSync(sourcePath)) {
-                content = fs.readFileSync(sourcePath, 'utf-8');
-              } else {
-                // Fallback to src/ for development mode
-                const devPath = path.join(projectRoot, 'src', 'templates', state.extension!, 'commands', cmd.source);
-                if (fs.existsSync(devPath)) {
-                  content = fs.readFileSync(devPath, 'utf-8');
-                } else {
-                  throw new Error(`Template not found: ${cmd.source}`);
-                }
-              }
-
               const result = await generateFile(targetPath, content, choice);
               results.push(result);
             } else {
