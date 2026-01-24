@@ -2121,12 +2121,17 @@ Remember: Status is for orientation. Help developers understand where they are a
 } as const;
 
 export const KILOCODE_TEMPLATES = {
-  prime: ROOCODE_TEMPLATES.prime.replace(/\.roo\//g, '.kilocode/workflows/'),
-  plan: ROOCODE_TEMPLATES.plan,
+  prime: ROOCODE_TEMPLATES.prime
+    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Prime files in context subdir
+  plan: ROOCODE_TEMPLATES.plan
+    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Reference prime files from context
   'define-acceptance': ROOCODE_TEMPLATES['define-acceptance'],
-  execute: ROOCODE_TEMPLATES.execute,
-  verify: ROOCODE_TEMPLATES.verify,
-  status: ROOCODE_TEMPLATES.status,
+  execute: ROOCODE_TEMPLATES.execute
+    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Reference prime files from context
+  verify: ROOCODE_TEMPLATES.verify
+    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Reference prime files from context
+  status: ROOCODE_TEMPLATES.status
+    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Reference prime files from context
 } as const;
 
 export type TemplateName = keyof typeof ROOCODE_TEMPLATES;

@@ -29,6 +29,15 @@ export function getCommandsSubdir(extension: MetaPromptExtension): string {
 }
 
 /**
+ * Get the subdirectory for prime/context files
+ * RooCode: prime files go directly in .roo/ (same as targetDir)
+ * KiloCode: prime files go in .kilocode/workflows/context/ to avoid command discovery
+ */
+export function getPrimeSubdir(extension: MetaPromptExtension): string {
+  return extension === 'kilocode' ? 'context' : '';
+}
+
+/**
  * Get the output file extension for an extension
  * RooCode uses .md, KiloCode uses .prompt.md
  */
