@@ -16,9 +16,19 @@ import {
   savePrimeMetadata,
 } from '../utils/metaPrompt/generator.js';
 import { generatePrimeStub, getAllPrimeFileNames } from '../utils/metaPrompt/primeAnalyzer.js';
-import { getEmbeddedTemplate, type TemplateName } from '../utils/metaPrompt/embeddedTemplates.js';
+import { getEmbeddedTemplate, getEmbeddedModeTemplate, type TemplateName, type ModeTemplateName } from '../utils/metaPrompt/embeddedTemplates.js';
 import type { TechStack, OverwriteChoice, FileGenerationResult } from '../utils/metaPrompt/types.js';
 import * as path from 'path';
+
+// Mode files for KiloCode custom modes (Phase 7.1)
+const MODE_FILES: ModeTemplateName[] = [
+  'orchestrate',
+  'discuss',
+  'plan',
+  'generate-verification',
+  'execute',
+  'verify',
+];
 
 const palette = {
   cyan: '#00DFFF',
@@ -143,6 +153,27 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
           }
         }
 
+        // Check mode files for KiloCode only (Phase 7.1)
+        if (state.extension === 'kilocode') {
+          // Check .kilocodemodes in project root
+          const projectRoot = process.cwd();
+          const kilocodemodesPath = path.join(projectRoot, '.kilocodemodes');
+          const existingKilocodemodes = checkExistingFile(kilocodemodesPath);
+          if (existingKilocodemodes.exists && existingKilocodemodes.content) {
+            filesToPrompt.push({ file: kilocodemodesPath, existingContent: existingKilocodemodes.content });
+          }
+
+          // Check mode prompt files in modes/ directory
+          const modesDir = path.join(state.targetDir!, 'modes');
+          for (const modeName of MODE_FILES) {
+            const modeFilePath = path.join(modesDir, `meeseeks-${modeName}.prompt.md`);
+            const existingMode = checkExistingFile(modeFilePath);
+            if (existingMode.exists && existingMode.content) {
+              filesToPrompt.push({ file: modeFilePath, existingContent: existingMode.content });
+            }
+          }
+        }
+
         if (filesToPrompt.length > 0) {
           setState((prev) => ({
             ...prev,
@@ -230,6 +261,37 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
               results.push(result);
             } else {
               results.push({ path: targetPath, status: 'skipped' });
+            }
+          }
+
+          // Generate mode files for KiloCode only (Phase 7.1)
+          if (state.extension === 'kilocode') {
+            // Generate .kilocodemodes in project root
+            const kilocodemodesPath = path.join(projectRoot, '.kilocodemodes');
+            const kilocodemodesChoice = state.overwriteChoices.get(kilocodemodesPath) || 'overwrite';
+            if (kilocodemodesChoice !== 'skip') {
+              const kilocodemodesContent = getEmbeddedModeTemplate('kilocodemodes');
+              const kilocodemodesResult = await generateFile(kilocodemodesPath, kilocodemodesContent, kilocodemodesChoice);
+              results.push(kilocodemodesResult);
+            } else {
+              results.push({ path: kilocodemodesPath, status: 'skipped' });
+            }
+
+            // Generate mode prompt files in modes/ directory
+            const modesDir = path.join(state.targetDir!, 'modes');
+            ensureTargetDir(modesDir);
+
+            for (const modeName of MODE_FILES) {
+              const modeFilePath = path.join(modesDir, `meeseeks-${modeName}.prompt.md`);
+              const modeChoice = state.overwriteChoices.get(modeFilePath) || 'overwrite';
+
+              if (modeChoice !== 'skip') {
+                const modeContent = getEmbeddedModeTemplate(modeName);
+                const modeResult = await generateFile(modeFilePath, modeContent, modeChoice);
+                results.push(modeResult);
+              } else {
+                results.push({ path: modeFilePath, status: 'skipped' });
+              }
             }
           }
 
