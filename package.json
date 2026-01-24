@@ -43,7 +43,7 @@
   },
   "scripts": {
     "start": "tsx src/index.tsx",
-    "build": "tsc && copyfiles -u 1 \"src/templates/**/*\" dist",
+    "build": "tsc",
     "prepublishOnly": "npm run build",
     "meeseeks": "node dist/index.js",
     "link": "npm run build && npm link",

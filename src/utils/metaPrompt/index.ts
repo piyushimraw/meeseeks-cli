@@ -11,6 +11,10 @@ export type {
   PrimeMetadata,
 } from './types.js';
 
+// Embedded Templates
+export { getEmbeddedTemplate, ROOCODE_TEMPLATES, KILOCODE_TEMPLATES } from './embeddedTemplates.js';
+export type { TemplateName, ExtensionType } from './embeddedTemplates.js';
+
 // Tech Stack Detection
 export { detectTechStack, hashTechStack } from './techStackDetector.js';
 
