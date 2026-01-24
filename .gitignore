@@ -27,6 +27,9 @@ Thumbs.db
 # TypeScript cache
 *.tsbuildinfo
 
+# Test coverage
+coverage/
+
 # Auto Claude data directory
 .auto-claude/
 
