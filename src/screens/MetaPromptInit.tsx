@@ -8,6 +8,7 @@ import {
   getTargetDir,
   getCommandsSubdir,
   getOutputExtension,
+  getPrimeSubdir,
   checkExistingFile,
   generateFile,
   generateIndexMd,
@@ -109,9 +110,13 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
       const checkFiles = async () => {
         const filesToPrompt: FileOverwritePrompt[] = [];
         const primeFiles = getAllPrimeFileNames();
+        const primeSubdir = getPrimeSubdir(state.extension!);
 
         for (const primeName of primeFiles) {
-          const filePath = path.join(state.targetDir!, `${primeName}.md`);
+          const primeDir = primeSubdir
+            ? path.join(state.targetDir!, primeSubdir)
+            : state.targetDir!;
+          const filePath = path.join(primeDir, `${primeName}.md`);
           const existing = checkExistingFile(filePath);
 
           if (existing.exists && existing.content) {
@@ -121,13 +126,16 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
 
         // Also check command files
         const commandFileNames = ['prime', 'plan', 'define-acceptance', 'execute', 'verify', 'status'];
-        const commandsSubdir = state.extension === 'roocode' ? 'commands' : '';
-        const outputExt = state.extension === 'roocode' ? '.md' : '.prompt.md';
+        const commandsSubdir = getCommandsSubdir(state.extension!);
+        const outputExt = getOutputExtension(state.extension!);
 
         for (const cmd of commandFileNames) {
+          const outputFilename = state.extension === 'roocode'
+            ? `${cmd}.md`
+            : `meeseeks:${cmd}.prompt.md`;  // Add meeseeks: prefix for KiloCode
           const filePath = commandsSubdir
-            ? path.join(state.targetDir!, commandsSubdir, `${cmd}${outputExt}`)
-            : path.join(state.targetDir!, `${cmd}${outputExt}`);
+            ? path.join(state.targetDir!, commandsSubdir, outputFilename)
+            : path.join(state.targetDir!, outputFilename);
           const existing = checkExistingFile(filePath);
 
           if (existing.exists && existing.content) {
@@ -165,10 +173,18 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
           // Ensure target directory exists
           ensureTargetDir(state.targetDir!);
 
-          // Generate prime stub files
+          // Generate prime stub files in context/ subdirectory for KiloCode
+          const primeSubdir = getPrimeSubdir(state.extension!);
+          const primeDir = primeSubdir
+            ? path.join(state.targetDir!, primeSubdir)
+            : state.targetDir!;
+
+          // Ensure prime directory exists
+          ensureTargetDir(primeDir);
+
           const primeFiles = getAllPrimeFileNames();
           for (const primeName of primeFiles) {
-            const filePath = path.join(state.targetDir!, `${primeName}.md`);
+            const filePath = path.join(primeDir, `${primeName}.md`);
             const choice = state.overwriteChoices.get(filePath) || 'overwrite';
 
             if (choice !== 'skip') {
@@ -197,10 +213,10 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
             // Get content from embedded templates
             const content = getEmbeddedTemplate(state.extension!, cmd.name as TemplateName);
 
-            // Determine output filename with correct extension
+            // Determine output filename with correct extension and meeseeks: prefix for KiloCode
             const outputFilename = state.extension === 'roocode'
               ? `${cmd.name}.md`  // RooCode: rename .prompt.md to .md
-              : `${cmd.name}.prompt.md`;  // KiloCode: keep .prompt.md
+              : `meeseeks:${cmd.name}.prompt.md`;  // KiloCode: add meeseeks: prefix
 
             // Determine target path with correct subdirectory
             const targetPath = commandsSubdir
@@ -217,21 +233,27 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
             }
           }
 
-          // Generate INDEX.md
+          // Generate INDEX.md in prime/context directory (not root workflows dir for KiloCode)
+          const indexDir = primeSubdir
+            ? path.join(state.targetDir!, primeSubdir)
+            : state.targetDir!;
           const allFiles = listGeneratedFiles(state.targetDir!);
-          const indexContent = generateIndexMd(state.targetDir!, allFiles);
-          const indexPath = path.join(state.targetDir!, 'INDEX.md');
+          const indexContent = generateIndexMd(indexDir, allFiles);
+          const indexPath = path.join(indexDir, 'INDEX.md');
           const indexResult = await generateFile(indexPath, indexContent, 'overwrite');
           results.push(indexResult);
 
-          // Save metadata
+          // Save metadata in prime directory
+          const metaDir = primeSubdir
+            ? path.join(state.targetDir!, primeSubdir)
+            : state.targetDir!;
           const metadata = {
             lastCommit: '', // Will be set by /prime command
             lastRun: new Date().toISOString(),
             filesGenerated: results.filter((r) => r.status !== 'error').map((r) => r.path),
             techStackHash: hashTechStack(state.techStack!),
           };
-          savePrimeMetadata(state.targetDir!, metadata);
+          savePrimeMetadata(metaDir, metadata);
 
           setState((prev) => ({
             ...prev,
