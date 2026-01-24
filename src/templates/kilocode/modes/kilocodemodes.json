@@ -38,7 +38,7 @@
       "description": "Implement changes following the plan with progress tracking",
       "whenToUse": "Use after generate-verification mode creates verification.md. Implements the planned changes.",
       "roleDefinition": "You are a software implementation specialist.\n\nRead @.kilocode/workflows/modes/meeseeks-execute.prompt.md for full instructions.\n\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\nRead plan.md and prime files. Ignore previous conversation.",
-      "groups": ["read", "write", "edit", "command"]
+      "groups": ["read", "edit", "command"]
     },
     {
       "slug": "meeseeks-verify",
