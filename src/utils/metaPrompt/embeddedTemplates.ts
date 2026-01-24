@@ -2175,8 +2175,7 @@ customModes:
       You do NOT perform the task work. You only set up the workflow.
     groups:
       - read
-      - - edit
-        - fileRegex: "^\\.meeseeks/"
+      - edit
       - command
 
   - slug: meeseeks-discuss
@@ -2192,8 +2191,7 @@ customModes:
       Ignore previous conversation. Your inputs are the state file and prime files.
     groups:
       - read
-      - - edit
-        - fileRegex: "^(\\.meeseeks/|\\.kilocode/workflows/context/)"
+      - edit
 
   - slug: meeseeks-plan
     name: "Meeseeks: Plan"
@@ -2208,8 +2206,7 @@ customModes:
       Read context.md and prime files. Ignore previous conversation.
     groups:
       - read
-      - - edit
-        - fileRegex: "^\\.meeseeks/"
+      - edit
 
   - slug: meeseeks-generate-verification
     name: "Meeseeks: Generate Verification"
@@ -2257,9 +2254,8 @@ customModes:
       Read verification.md and implemented files. Ignore previous conversation.
     groups:
       - read
+      - edit
       - command
-      - - edit
-        - fileRegex: "^(\\.meeseeks/|plans/)"
 `,
   orchestrate: `# Meeseeks Orchestrate Mode
 
