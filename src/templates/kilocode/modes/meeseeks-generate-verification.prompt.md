@@ -21,7 +21,7 @@ You are a QA and verification specialist. Your job is to create comprehensive ve
 | 1. .meeseeks/tasks/{task-key}/state.json (workflow state)                    |
 | 2. .meeseeks/tasks/{task-key}/plan.md (implementation plan)                  |
 | 3. .meeseeks/tasks/{task-key}/context.md (original requirements)             |
-| 4. Prime files in .kilocode/workflows/context/                               |
+| 4. Prime files in .meeseeks/context/                               |
 |                                                                              |
 | Prior chat messages are NOT your context. Load files.                        |
 +==============================================================================+

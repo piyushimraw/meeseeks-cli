@@ -164,8 +164,8 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
             filesToPrompt.push({ file: kilocodemodesPath, existingContent: existingKilocodemodes.content });
           }
 
-          // Check mode prompt files in modes/ directory
-          const modesDir = path.join(state.targetDir!, 'modes');
+          // Check mode prompt files in .meeseeks/modes/ directory
+          const modesDir = path.join(projectRoot, '.meeseeks', 'modes');
           for (const modeName of MODE_FILES) {
             const modeFilePath = path.join(modesDir, `meeseeks-${modeName}.prompt.md`);
             const existingMode = checkExistingFile(modeFilePath);
@@ -278,8 +278,8 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
               results.push({ path: kilocodemodesPath, status: 'skipped' });
             }
 
-            // Generate mode prompt files in modes/ directory
-            const modesDir = path.join(state.targetDir!, 'modes');
+            // Generate mode prompt files in .meeseeks/modes/ directory
+            const modesDir = path.join(projectRoot, '.meeseeks', 'modes');
             ensureTargetDir(modesDir);
 
             for (const modeName of MODE_FILES) {

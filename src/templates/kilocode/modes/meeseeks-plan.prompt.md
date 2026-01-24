@@ -10,7 +10,7 @@ Your only inputs are:
 1. This prompt file
 2. The task state from `.meeseeks/tasks/{task-key}/state.json`
 3. The context file from `.meeseeks/tasks/{task-key}/context.md`
-4. The project's prime files in `.kilocode/workflows/context/prime/`
+4. The project's prime files in `.meeseeks/context/`
 
 ## Load State
 
@@ -44,11 +44,11 @@ Extract:
 
 Read all prime files to understand the project:
 ```
-.kilocode/workflows/context/prime/ARCHITECTURE.md
-.kilocode/workflows/context/prime/CONVENTION.md
-.kilocode/workflows/context/prime/INTEGRATION.md
-.kilocode/workflows/context/prime/STACK.md
-.kilocode/workflows/context/prime/STRUCTURE.md
+.meeseeks/context/ARCHITECTURE.md
+.meeseeks/context/CONVENTION.md
+.meeseeks/context/INTEGRATION.md
+.meeseeks/context/STACK.md
+.meeseeks/context/STRUCTURE.md
 ```
 
 Use these to:

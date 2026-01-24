@@ -2122,16 +2122,16 @@ Remember: Status is for orientation. Help developers understand where they are a
 
 export const KILOCODE_TEMPLATES = {
   prime: ROOCODE_TEMPLATES.prime
-    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Prime files in context subdir
+    .replace(/\.roo\//g, '.meeseeks/context/'),  // Prime files in context subdir
   plan: ROOCODE_TEMPLATES.plan
-    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Reference prime files from context
+    .replace(/\.roo\//g, '.meeseeks/context/'),  // Reference prime files from context
   'define-acceptance': ROOCODE_TEMPLATES['define-acceptance'],
   execute: ROOCODE_TEMPLATES.execute
-    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Reference prime files from context
+    .replace(/\.roo\//g, '.meeseeks/context/'),  // Reference prime files from context
   verify: ROOCODE_TEMPLATES.verify
-    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Reference prime files from context
+    .replace(/\.roo\//g, '.meeseeks/context/'),  // Reference prime files from context
   status: ROOCODE_TEMPLATES.status
-    .replace(/\.roo\//g, '.kilocode/workflows/context/'),  // Reference prime files from context
+    .replace(/\.roo\//g, '.meeseeks/context/'),  // Reference prime files from context
 } as const;
 
 export type TemplateName = keyof typeof ROOCODE_TEMPLATES;
@@ -2158,7 +2158,7 @@ export const KILOCODE_MODE_TEMPLATES = {
       "name": "Meeseeks: Prime",
       "description": "Analyze codebase and generate context files (ARCHITECTURE.md, CONVENTION.md, INDEX.md, INTEGRATION.md, STACK.md, STRUCTURE.md)",
       "whenToUse": "Use when setting up a new project for meeseeks workflow, or when codebase has changed significantly. Must run before meeseeks:orchestrate.",
-      "roleDefinition": "You are a codebase analysis specialist.\\n\\nRead @.kilocode/workflows/modes/meeseeks-prime.prompt.md for full instructions.\\n\\nYour job is to:\\n1. Detect tech stack from manifest files (package.json, requirements.txt, etc.)\\n2. Analyze architecture patterns, conventions, integrations\\n3. Generate 6 context files in .kilocode/workflows/context/\\n4. Save metadata to .meeseeks/prime-meta.json\\n\\nThese context files are prerequisites for the meeseeks development workflow.",
+      "roleDefinition": "You are a codebase analysis specialist.\\n\\nRead @.meeseeks/modes/meeseeks-prime.prompt.md for full instructions.\\n\\nYour job is to:\\n1. Detect tech stack from manifest files (package.json, requirements.txt, etc.)\\n2. Analyze architecture patterns, conventions, integrations\\n3. Generate 6 context files in .meeseeks/context/\\n4. Save metadata to .meeseeks/prime-meta.json\\n\\nThese context files are prerequisites for the meeseeks development workflow.",
       "groups": ["read", "edit", "command"]
     },
     {
@@ -2166,7 +2166,7 @@ export const KILOCODE_MODE_TEMPLATES = {
       "name": "Meeseeks: Orchestrate",
       "description": "Start a new development task - validates prerequisites and creates task directory",
       "whenToUse": "Use when starting a new development task from JIRA ticket or description. This is the entry point to the meeseeks workflow.",
-      "roleDefinition": "You are the Meeseeks orchestrator. You manage the development workflow lifecycle.\\n\\nRead @.kilocode/workflows/modes/meeseeks-orchestrate.prompt.md for full instructions.\\n\\nYour job is to:\\n1. Validate prerequisites (prime files exist, git is clean, no other active tasks)\\n2. Get task input (JIRA ticket ID or text description)\\n3. Create .meeseeks/tasks/{task-key}/ directory structure\\n4. Initialize state.json with schemaVersion 1.0\\n5. Instruct user to switch to meeseeks:discuss mode\\n\\nYou do NOT perform the task work. You only set up the workflow.",
+      "roleDefinition": "You are the Meeseeks orchestrator. You manage the development workflow lifecycle.\\n\\nRead @.meeseeks/modes/meeseeks-orchestrate.prompt.md for full instructions.\\n\\nYour job is to:\\n1. Validate prerequisites (prime files exist, git is clean, no other active tasks)\\n2. Get task input (JIRA ticket ID or text description)\\n3. Create .meeseeks/tasks/{task-key}/ directory structure\\n4. Initialize state.json with schemaVersion 1.0\\n5. Instruct user to switch to meeseeks:discuss mode\\n\\nYou do NOT perform the task work. You only set up the workflow.",
       "groups": ["read", "edit", "command"]
     },
     {
@@ -2174,7 +2174,7 @@ export const KILOCODE_MODE_TEMPLATES = {
       "name": "Meeseeks: Discuss",
       "description": "Gather task context through structured interview",
       "whenToUse": "Use after orchestrate mode creates task directory. Gathers requirements and context through questions.",
-      "roleDefinition": "You are a requirements gathering specialist.\\n\\nRead @.kilocode/workflows/modes/meeseeks-discuss.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nIgnore previous conversation. Your inputs are the state file and prime files.",
+      "roleDefinition": "You are a requirements gathering specialist.\\n\\nRead @.meeseeks/modes/meeseeks-discuss.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nIgnore previous conversation. Your inputs are the state file and prime files.",
       "groups": ["read", "edit"]
     },
     {
@@ -2182,7 +2182,7 @@ export const KILOCODE_MODE_TEMPLATES = {
       "name": "Meeseeks: Plan",
       "description": "Create implementation plan from context and prime files",
       "whenToUse": "Use after discuss mode creates context.md. Generates detailed implementation plan.",
-      "roleDefinition": "You are a software planning specialist.\\n\\nRead @.kilocode/workflows/modes/meeseeks-plan.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nRead context.md and prime files. Ignore previous conversation.",
+      "roleDefinition": "You are a software planning specialist.\\n\\nRead @.meeseeks/modes/meeseeks-plan.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nRead context.md and prime files. Ignore previous conversation.",
       "groups": ["read", "edit"]
     },
     {
@@ -2190,7 +2190,7 @@ export const KILOCODE_MODE_TEMPLATES = {
       "name": "Meeseeks: Generate Verification",
       "description": "Create verification plan from implementation plan",
       "whenToUse": "Use after plan mode creates plan.md. Generates acceptance criteria and test plans.",
-      "roleDefinition": "You are a QA and verification specialist.\\n\\nRead @.kilocode/workflows/modes/meeseeks-generate-verification.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nRead plan.md. Ignore previous conversation.",
+      "roleDefinition": "You are a QA and verification specialist.\\n\\nRead @.meeseeks/modes/meeseeks-generate-verification.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nRead plan.md. Ignore previous conversation.",
       "groups": ["read", "edit"]
     },
     {
@@ -2198,7 +2198,7 @@ export const KILOCODE_MODE_TEMPLATES = {
       "name": "Meeseeks: Execute",
       "description": "Implement changes following the plan with progress tracking",
       "whenToUse": "Use after generate-verification mode creates verification.md. Implements the planned changes.",
-      "roleDefinition": "You are a software implementation specialist.\\n\\nRead @.kilocode/workflows/modes/meeseeks-execute.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nRead plan.md and prime files. Ignore previous conversation.",
+      "roleDefinition": "You are a software implementation specialist.\\n\\nRead @.meeseeks/modes/meeseeks-execute.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nRead plan.md and prime files. Ignore previous conversation.",
       "groups": ["read", "edit", "command"]
     },
     {
@@ -2206,7 +2206,7 @@ export const KILOCODE_MODE_TEMPLATES = {
       "name": "Meeseeks: Verify",
       "description": "Validate implementation against verification plan",
       "whenToUse": "Use after execute mode completes all plan steps. Validates against acceptance criteria.",
-      "roleDefinition": "You are a verification and quality assurance specialist.\\n\\nRead @.kilocode/workflows/modes/meeseeks-verify.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nRead verification.md and implemented files. Ignore previous conversation.",
+      "roleDefinition": "You are a verification and quality assurance specialist.\\n\\nRead @.meeseeks/modes/meeseeks-verify.prompt.md for full instructions.\\n\\nCONTEXT RESET: Load state from .meeseeks/tasks/{task-key}/state.json only.\\nRead verification.md and implemented files. Ignore previous conversation.",
       "groups": ["read", "edit", "command"]
     }
   ]
@@ -2290,13 +2290,13 @@ For each prime file, perform deep analysis:
 
 ### 4. Generate Prime Files
 
-Write each analysis result to \`.kilocode/workflows/context/\`:
-- \`.kilocode/workflows/context/ARCHITECTURE.md\`
-- \`.kilocode/workflows/context/CONVENTION.md\`
-- \`.kilocode/workflows/context/INDEX.md\`
-- \`.kilocode/workflows/context/INTEGRATION.md\`
-- \`.kilocode/workflows/context/STACK.md\`
-- \`.kilocode/workflows/context/STRUCTURE.md\`
+Write each analysis result to \`.meeseeks/context/\`:
+- \`.meeseeks/context/ARCHITECTURE.md\`
+- \`.meeseeks/context/CONVENTION.md\`
+- \`.meeseeks/context/INDEX.md\`
+- \`.meeseeks/context/INTEGRATION.md\`
+- \`.meeseeks/context/STACK.md\`
+- \`.meeseeks/context/STRUCTURE.md\`
 
 ### 5. Update Metadata
 
@@ -2307,7 +2307,7 @@ Write \`.meeseeks/prime-meta.json\` with:
   "lastRun": "<ISO timestamp>",
   "filesGenerated": ["ARCHITECTURE.md", "CONVENTION.md", "INDEX.md", "INTEGRATION.md", "STACK.md", "STRUCTURE.md"],
   "techStackHash": "<hash of detected stack>",
-  "contextPath": ".kilocode/workflows/context/"
+  "contextPath": ".meeseeks/context/"
 }
 \`\`\`
 
@@ -2343,7 +2343,7 @@ This is a fresh context. Do not rely on any previous conversation history.
 Your only inputs are:
 1. This prompt file
 2. The user's task request (JIRA ticket ID or text description)
-3. The project's prime files in \`.kilocode/workflows/context/prime/\`
+3. The project's prime files in \`.meeseeks/context/prime/\`
 
 ## Prerequisites Check
 
@@ -2352,11 +2352,11 @@ Before proceeding, validate these prerequisites:
 ### 1. Prime Files Exist
 Check that prime files exist:
 \`\`\`
-.kilocode/workflows/context/prime/ARCHITECTURE.md
-.kilocode/workflows/context/prime/CONVENTION.md
-.kilocode/workflows/context/prime/INTEGRATION.md
-.kilocode/workflows/context/prime/STACK.md
-.kilocode/workflows/context/prime/STRUCTURE.md
+.meeseeks/context/prime/ARCHITECTURE.md
+.meeseeks/context/prime/CONVENTION.md
+.meeseeks/context/prime/INTEGRATION.md
+.meeseeks/context/prime/STACK.md
+.meeseeks/context/prime/STRUCTURE.md
 \`\`\`
 
 If missing, instruct user: "Run \`/meeseeks:prime\` first to initialize project context."
@@ -2491,7 +2491,7 @@ This is a fresh context. Do not rely on any previous conversation history.
 Your only inputs are:
 1. This prompt file
 2. The task state from \`.meeseeks/tasks/{task-key}/state.json\`
-3. The project's prime files in \`.kilocode/workflows/context/prime/\`
+3. The project's prime files in \`.meeseeks/context/prime/\`
 
 ## Load State
 
@@ -2515,9 +2515,9 @@ Extract:
 
 Read these files to understand the project:
 \`\`\`
-.kilocode/workflows/context/prime/ARCHITECTURE.md
-.kilocode/workflows/context/prime/CONVENTION.md
-.kilocode/workflows/context/prime/STACK.md
+.meeseeks/context/prime/ARCHITECTURE.md
+.meeseeks/context/prime/CONVENTION.md
+.meeseeks/context/prime/STACK.md
 \`\`\`
 
 These give you:
@@ -2685,7 +2685,7 @@ Your only inputs are:
 1. This prompt file
 2. The task state from \`.meeseeks/tasks/{task-key}/state.json\`
 3. The context file from \`.meeseeks/tasks/{task-key}/context.md\`
-4. The project's prime files in \`.kilocode/workflows/context/prime/\`
+4. The project's prime files in \`.meeseeks/context/prime/\`
 
 ## Load State
 
@@ -2719,11 +2719,11 @@ Extract:
 
 Read all prime files to understand the project:
 \`\`\`
-.kilocode/workflows/context/prime/ARCHITECTURE.md
-.kilocode/workflows/context/prime/CONVENTION.md
-.kilocode/workflows/context/prime/INTEGRATION.md
-.kilocode/workflows/context/prime/STACK.md
-.kilocode/workflows/context/prime/STRUCTURE.md
+.meeseeks/context/prime/ARCHITECTURE.md
+.meeseeks/context/prime/CONVENTION.md
+.meeseeks/context/prime/INTEGRATION.md
+.meeseeks/context/prime/STACK.md
+.meeseeks/context/prime/STRUCTURE.md
 \`\`\`
 
 Use these to:
@@ -2924,7 +2924,7 @@ You are a QA and verification specialist. Your job is to create comprehensive ve
 | 1. .meeseeks/tasks/{task-key}/state.json (workflow state)                    |
 | 2. .meeseeks/tasks/{task-key}/plan.md (implementation plan)                  |
 | 3. .meeseeks/tasks/{task-key}/context.md (original requirements)             |
-| 4. Prime files in .kilocode/workflows/context/                               |
+| 4. Prime files in .meeseeks/context/                               |
 |                                                                              |
 | Prior chat messages are NOT your context. Load files.                        |
 +==============================================================================+
@@ -3202,7 +3202,7 @@ You are a software implementation specialist. Your job is to implement code chan
 | 1. .meeseeks/tasks/{task-key}/state.json (workflow state)                    |
 | 2. .meeseeks/tasks/{task-key}/plan.md (implementation steps)                 |
 | 3. .meeseeks/tasks/{task-key}/verification.md (acceptance criteria)          |
-| 4. Prime files in .kilocode/workflows/context/                               |
+| 4. Prime files in .meeseeks/context/                               |
 |                                                                              |
 | Prior chat messages are NOT your context. Load files.                        |
 +==============================================================================+

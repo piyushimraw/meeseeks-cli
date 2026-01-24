@@ -9,7 +9,7 @@ This is a fresh context. Do not rely on any previous conversation history.
 Your only inputs are:
 1. This prompt file
 2. The user's task request (JIRA ticket ID or text description)
-3. The project's prime files in `.kilocode/workflows/context/prime/`
+3. The project's prime files in `.meeseeks/context/`
 
 ## Prerequisites Check
 
@@ -18,11 +18,11 @@ Before proceeding, validate these prerequisites:
 ### 1. Prime Files Exist
 Check that prime files exist:
 ```
-.kilocode/workflows/context/prime/ARCHITECTURE.md
-.kilocode/workflows/context/prime/CONVENTION.md
-.kilocode/workflows/context/prime/INTEGRATION.md
-.kilocode/workflows/context/prime/STACK.md
-.kilocode/workflows/context/prime/STRUCTURE.md
+.meeseeks/context/ARCHITECTURE.md
+.meeseeks/context/CONVENTION.md
+.meeseeks/context/INTEGRATION.md
+.meeseeks/context/STACK.md
+.meeseeks/context/STRUCTURE.md
 ```
 
 If missing, instruct user: "Run `/meeseeks:prime` first to initialize project context."

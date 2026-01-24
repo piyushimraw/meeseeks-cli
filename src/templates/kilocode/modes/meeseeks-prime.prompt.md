@@ -76,13 +76,13 @@ For each prime file, perform deep analysis:
 
 ### 4. Generate Prime Files
 
-Write each analysis result to `.kilocode/workflows/context/`:
-- `.kilocode/workflows/context/ARCHITECTURE.md`
-- `.kilocode/workflows/context/CONVENTION.md`
-- `.kilocode/workflows/context/INDEX.md`
-- `.kilocode/workflows/context/INTEGRATION.md`
-- `.kilocode/workflows/context/STACK.md`
-- `.kilocode/workflows/context/STRUCTURE.md`
+Write each analysis result to `.meeseeks/context/`:
+- `.meeseeks/context/ARCHITECTURE.md`
+- `.meeseeks/context/CONVENTION.md`
+- `.meeseeks/context/INDEX.md`
+- `.meeseeks/context/INTEGRATION.md`
+- `.meeseeks/context/STACK.md`
+- `.meeseeks/context/STRUCTURE.md`
 
 ### 5. Update Metadata
 
@@ -93,7 +93,7 @@ Write `.meeseeks/prime-meta.json` with:
   "lastRun": "<ISO timestamp>",
   "filesGenerated": ["ARCHITECTURE.md", "CONVENTION.md", "INDEX.md", "INTEGRATION.md", "STACK.md", "STRUCTURE.md"],
   "techStackHash": "<hash of detected stack>",
-  "contextPath": ".kilocode/workflows/context/"
+  "contextPath": ".meeseeks/context/"
 }
 ```
 
@@ -129,4 +129,4 @@ After completion, display:
 ## Next Steps
 
 After prime files are generated, instruct user:
-"Prime context files generated. You can now start a development task with `/meeseeks:orchestrate`"
+"Prime context files generated in .meeseeks/context/. You can now start a development task with /meeseeks:orchestrate"

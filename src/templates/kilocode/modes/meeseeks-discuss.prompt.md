@@ -9,7 +9,7 @@ This is a fresh context. Do not rely on any previous conversation history.
 Your only inputs are:
 1. This prompt file
 2. The task state from `.meeseeks/tasks/{task-key}/state.json`
-3. The project's prime files in `.kilocode/workflows/context/prime/`
+3. The project's prime files in `.meeseeks/context/`
 
 ## Load State
 
@@ -33,9 +33,9 @@ Extract:
 
 Read these files to understand the project:
 ```
-.kilocode/workflows/context/prime/ARCHITECTURE.md
-.kilocode/workflows/context/prime/CONVENTION.md
-.kilocode/workflows/context/prime/STACK.md
+.meeseeks/context/ARCHITECTURE.md
+.meeseeks/context/CONVENTION.md
+.meeseeks/context/STACK.md
 ```
 
 These give you:

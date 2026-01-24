@@ -23,7 +23,7 @@ You are a software implementation specialist. Your job is to implement code chan
 | 1. .meeseeks/tasks/{task-key}/state.json (workflow state)                    |
 | 2. .meeseeks/tasks/{task-key}/plan.md (implementation steps)                 |
 | 3. .meeseeks/tasks/{task-key}/verification.md (acceptance criteria)          |
-| 4. Prime files in .kilocode/workflows/context/                               |
+| 4. Prime files in .meeseeks/context/                               |
 |                                                                              |
 | Prior chat messages are NOT your context. Load files.                        |
 +==============================================================================+
