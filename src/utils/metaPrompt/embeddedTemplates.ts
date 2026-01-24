@@ -2176,7 +2176,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: "^\\\\.meeseeks/"
+        - fileRegex: "^\\.meeseeks/"
       - command
 
   - slug: meeseeks-discuss
@@ -2193,7 +2193,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: "^(\\\\.meeseeks/|\\\\.kilocode/workflows/context/)"
+        - fileRegex: "^(\\.meeseeks/|\\.kilocode/workflows/context/)"
 
   - slug: meeseeks-plan
     name: "Meeseeks: Plan"
@@ -2209,7 +2209,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: "^\\\\.meeseeks/"
+        - fileRegex: "^\\.meeseeks/"
 
   - slug: meeseeks-generate-verification
     name: "Meeseeks: Generate Verification"
@@ -2225,7 +2225,7 @@ customModes:
     groups:
       - read
       - - edit
-        - fileRegex: "^\\\\.meeseeks/"
+        - fileRegex: "^\\.meeseeks/"
 
   - slug: meeseeks-execute
     name: "Meeseeks: Execute"
@@ -2259,7 +2259,7 @@ customModes:
       - read
       - command
       - - edit
-        - fileRegex: "^(\\\\.meeseeks/|plans/)"
+        - fileRegex: "^(\\.meeseeks/|plans/)"
 `,
   orchestrate: `# Meeseeks Orchestrate Mode
 
