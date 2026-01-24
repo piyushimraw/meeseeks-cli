@@ -9,6 +9,11 @@ export type {
   OverwriteChoice,
   FileGenerationResult,
   PrimeMetadata,
+  // Custom Mode Workflow Types (Phase 7.1)
+  MeeseeksMode,
+  CheckpointData,
+  HandoffState,
+  ExistingWorkResult,
 } from './types.js';
 
 // Embedded Templates
@@ -86,3 +91,19 @@ export type {
   PlanProgress,
   ProgressLogEntry,
 } from './progressTracker.js';
+
+// Task State Management (Phase 7.1 - Custom Modes)
+export {
+  getTaskDir,
+  getStateFilePath,
+  initializeTaskDir,
+  loadTaskState,
+  saveTaskState,
+  updateCheckpoint,
+  addCreatedFile,
+  transitionToMode,
+  detectExistingWork,
+  listActiveTasks,
+  cleanupTask,
+  generateTaskSlug,
+} from './taskState.js';
