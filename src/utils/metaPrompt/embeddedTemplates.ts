@@ -2156,9 +2156,9 @@ export const KILOCODE_MODE_TEMPLATES = {
     {
       "slug": "meeseeks-prime",
       "name": "Meeseeks: Prime",
-      "description": "Analyze codebase and generate context files (ARCHITECTURE.md, CONVENTION.md, INDEX.md, INTEGRATION.md, STACK.md, STRUCTURE.md)",
+      "description": "Analyze codebase and generate context files (ARCHITECTURE.md, CONVENTION.md, INTEGRATION.md, STACK.md, STRUCTURE.md)",
       "whenToUse": "Use when setting up a new project for meeseeks workflow, or when codebase has changed significantly. Must run before meeseeks:orchestrate.",
-      "roleDefinition": "You are a codebase analysis specialist.\\n\\nRead @.meeseeks/modes/meeseeks-prime.prompt.md for full instructions.\\n\\nYour job is to:\\n1. Detect tech stack from manifest files (package.json, requirements.txt, etc.)\\n2. Analyze architecture patterns, conventions, integrations\\n3. Generate 6 context files in .meeseeks/context/\\n4. Save metadata to .meeseeks/prime-meta.json\\n\\nThese context files are prerequisites for the meeseeks development workflow.",
+      "roleDefinition": "You are a codebase analysis specialist.\\n\\nRead @.meeseeks/modes/meeseeks-prime.prompt.md for full instructions.\\n\\nYour job is to:\\n1. Detect tech stack from manifest files (package.json, requirements.txt, etc.)\\n2. Analyze architecture patterns, conventions, integrations\\n3. Generate 5 context files in .meeseeks/context/\\n4. Save metadata to .meeseeks/prime-meta.json\\n\\nThese context files are prerequisites for the meeseeks development workflow.",
       "groups": ["read", "edit", "command"]
     },
     {
@@ -2218,10 +2218,9 @@ You are a codebase analysis specialist. Your role is to analyze the project stru
 
 ## Purpose
 
-Generate 6 prime context files that capture the essential knowledge about this codebase:
+Generate 5 prime context files that capture the essential knowledge about this codebase:
 - **ARCHITECTURE.md** - Module boundaries, layer patterns, dependency flow
 - **CONVENTION.md** - Naming conventions, code style, error handling patterns
-- **INDEX.md** - Quick reference index of key files and entry points
 - **INTEGRATION.md** - External services, APIs, databases, third-party dependencies
 - **STACK.md** - Runtime, language, frameworks, build tools, test frameworks
 - **STRUCTURE.md** - Directory layout, file organization, module boundaries
@@ -2262,12 +2261,6 @@ For each prime file, perform deep analysis:
 - Comment and documentation conventions
 - Import organization
 
-**INDEX.md:**
-- Entry points (main files, CLI commands)
-- Key configuration files
-- Important utility modules
-- Test locations
-
 **INTEGRATION.md:**
 - External APIs and services
 - Database connections
@@ -2293,7 +2286,6 @@ For each prime file, perform deep analysis:
 Write each analysis result to \`.meeseeks/context/\`:
 - \`.meeseeks/context/ARCHITECTURE.md\`
 - \`.meeseeks/context/CONVENTION.md\`
-- \`.meeseeks/context/INDEX.md\`
 - \`.meeseeks/context/INTEGRATION.md\`
 - \`.meeseeks/context/STACK.md\`
 - \`.meeseeks/context/STRUCTURE.md\`
@@ -2305,7 +2297,7 @@ Write \`.meeseeks/prime-meta.json\` with:
 {
   "lastCommit": "<current git HEAD>",
   "lastRun": "<ISO timestamp>",
-  "filesGenerated": ["ARCHITECTURE.md", "CONVENTION.md", "INDEX.md", "INTEGRATION.md", "STACK.md", "STRUCTURE.md"],
+  "filesGenerated": ["ARCHITECTURE.md", "CONVENTION.md", "INTEGRATION.md", "STACK.md", "STRUCTURE.md"],
   "techStackHash": "<hash of detected stack>",
   "contextPath": ".meeseeks/context/"
 }
@@ -2343,7 +2335,7 @@ This is a fresh context. Do not rely on any previous conversation history.
 Your only inputs are:
 1. This prompt file
 2. The user's task request (JIRA ticket ID or text description)
-3. The project's prime files in \`.meeseeks/context/prime/\`
+3. The project's prime files in \`.meeseeks/context/\`
 
 ## Prerequisites Check
 
@@ -2352,11 +2344,11 @@ Before proceeding, validate these prerequisites:
 ### 1. Prime Files Exist
 Check that prime files exist:
 \`\`\`
-.meeseeks/context/prime/ARCHITECTURE.md
-.meeseeks/context/prime/CONVENTION.md
-.meeseeks/context/prime/INTEGRATION.md
-.meeseeks/context/prime/STACK.md
-.meeseeks/context/prime/STRUCTURE.md
+.meeseeks/context/ARCHITECTURE.md
+.meeseeks/context/CONVENTION.md
+.meeseeks/context/INTEGRATION.md
+.meeseeks/context/STACK.md
+.meeseeks/context/STRUCTURE.md
 \`\`\`
 
 If missing, instruct user: "Run \`/meeseeks:prime\` first to initialize project context."
@@ -2491,7 +2483,7 @@ This is a fresh context. Do not rely on any previous conversation history.
 Your only inputs are:
 1. This prompt file
 2. The task state from \`.meeseeks/tasks/{task-key}/state.json\`
-3. The project's prime files in \`.meeseeks/context/prime/\`
+3. The project's prime files in \`.meeseeks/context/\`
 
 ## Load State
 
@@ -2515,9 +2507,9 @@ Extract:
 
 Read these files to understand the project:
 \`\`\`
-.meeseeks/context/prime/ARCHITECTURE.md
-.meeseeks/context/prime/CONVENTION.md
-.meeseeks/context/prime/STACK.md
+.meeseeks/context/ARCHITECTURE.md
+.meeseeks/context/CONVENTION.md
+.meeseeks/context/STACK.md
 \`\`\`
 
 These give you:
@@ -2685,7 +2677,7 @@ Your only inputs are:
 1. This prompt file
 2. The task state from \`.meeseeks/tasks/{task-key}/state.json\`
 3. The context file from \`.meeseeks/tasks/{task-key}/context.md\`
-4. The project's prime files in \`.meeseeks/context/prime/\`
+4. The project's prime files in \`.meeseeks/context/\`
 
 ## Load State
 
@@ -2719,11 +2711,11 @@ Extract:
 
 Read all prime files to understand the project:
 \`\`\`
-.meeseeks/context/prime/ARCHITECTURE.md
-.meeseeks/context/prime/CONVENTION.md
-.meeseeks/context/prime/INTEGRATION.md
-.meeseeks/context/prime/STACK.md
-.meeseeks/context/prime/STRUCTURE.md
+.meeseeks/context/ARCHITECTURE.md
+.meeseeks/context/CONVENTION.md
+.meeseeks/context/INTEGRATION.md
+.meeseeks/context/STACK.md
+.meeseeks/context/STRUCTURE.md
 \`\`\`
 
 Use these to:

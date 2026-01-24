@@ -11,8 +11,6 @@ import {
   getPrimeSubdir,
   checkExistingFile,
   generateFile,
-  generateIndexMd,
-  listGeneratedFiles,
   savePrimeMetadata,
 } from '../utils/metaPrompt/generator.js';
 import { generatePrimeStub, getAllPrimeFileNames } from '../utils/metaPrompt/primeAnalyzer.js';
@@ -295,16 +293,6 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
               }
             }
           }
-
-          // Generate INDEX.md in prime/context directory (not root workflows dir for KiloCode)
-          const indexDir = primeSubdir
-            ? path.join(state.targetDir!, primeSubdir)
-            : state.targetDir!;
-          const allFiles = listGeneratedFiles(state.targetDir!);
-          const indexContent = generateIndexMd(indexDir, allFiles);
-          const indexPath = path.join(indexDir, 'INDEX.md');
-          const indexResult = await generateFile(indexPath, indexContent, 'overwrite');
-          results.push(indexResult);
 
           // Save metadata in prime directory
           const metaDir = primeSubdir
