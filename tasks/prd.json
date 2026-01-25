@@ -1,0 +1,261 @@
+{
+  "name": "Unit Tests with 80% Coverage for Meeseeks",
+  "description": "Add comprehensive unit testing to the meeseeks project using Vitest, achieving at least 80% test coverage",
+  "branchName": "ralph/unit-tests-80-coverage",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Configure Vitest with TypeScript Support",
+      "description": "As a developer, I want Vitest properly configured so that I can write and run TypeScript tests.",
+      "acceptanceCriteria": [
+        "Vitest installed as dev dependency",
+        "vitest.config.ts created with TypeScript support",
+        "Test script added to package.json: \"test\": \"vitest run\"",
+        "Watch mode script added: \"test:watch\": \"vitest\"",
+        "Coverage script added: \"test:coverage\": \"vitest run --coverage\"",
+        "Coverage provider configured (v8 or istanbul)",
+        "Coverage thresholds set to warn at 80% (not fail)",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-002",
+      "title": "Test Tokenizer Utility",
+      "description": "As a developer, I want the tokenizer utility tested so that token counting is reliable.",
+      "acceptanceCriteria": [
+        "src/utils/tokenizer.test.ts created (co-located)",
+        "Tests cover token counting for various string inputs",
+        "Tests cover edge cases (empty string, special characters, unicode)",
+        "Tests cover any exported helper functions",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-003",
+      "title": "Test Git Utilities",
+      "description": "As a developer, I want git utilities tested so that git-related logic is reliable.",
+      "acceptanceCriteria": [
+        "src/utils/git.test.ts created",
+        "Tests cover pure logic functions (not actual git commands)",
+        "Functions that shell out to git are skipped or have logic extracted",
+        "Branch name parsing/validation tested if applicable",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-004",
+      "title": "Test BranchName Utility",
+      "description": "As a developer, I want branch name utilities tested so that naming conventions are enforced.",
+      "acceptanceCriteria": [
+        "src/utils/branchName.test.ts created",
+        "Tests cover branch name generation logic",
+        "Tests cover validation rules",
+        "Tests cover edge cases (special characters, length limits)",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-005",
+      "title": "Test Copilot Utility (Logic Only)",
+      "description": "As a developer, I want copilot utility logic tested without calling external APIs.",
+      "acceptanceCriteria": [
+        "src/utils/copilot.test.ts created",
+        "Tests cover request/response formatting logic",
+        "Tests cover error handling logic",
+        "Actual API calls are not tested (skipped)",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-006",
+      "title": "Test MetaPrompt Utilities",
+      "description": "As a developer, I want metaPrompt utilities tested so that prompt generation is reliable.",
+      "acceptanceCriteria": [
+        "Tests created for files in src/utils/metaPrompt/",
+        "Template generation logic tested",
+        "Variable substitution tested",
+        "Edge cases covered",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-007",
+      "title": "Test JiraService (Logic Only)",
+      "description": "As a developer, I want JiraService logic tested without calling JIRA API.",
+      "acceptanceCriteria": [
+        "src/services/JiraService.test.ts created",
+        "Tests cover data transformation logic",
+        "Tests cover input validation",
+        "Actual JIRA API calls are skipped",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-008",
+      "title": "Test Custom Hooks",
+      "description": "As a developer, I want custom hooks tested so that state management logic is reliable.",
+      "acceptanceCriteria": [
+        "Install @testing-library/react-hooks or use Vitest's hook testing",
+        "Tests created for hooks in src/hooks/",
+        "State transitions tested",
+        "Side effect triggers tested (without actual side effects)",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-009",
+      "title": "Test Screen Logic (Hooks/State)",
+      "description": "As a developer, I want screen logic tested through extracted hooks and state.",
+      "acceptanceCriteria": [
+        "Logic extracted from screens into testable hooks where needed",
+        "Screen state management tested",
+        "User interaction handlers tested (logic only)",
+        "Full render tests not required for screens",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-008"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-010",
+      "title": "Test UI Components with React Testing Library",
+      "description": "As a developer, I want UI components tested for correct behavior.",
+      "acceptanceCriteria": [
+        "@testing-library/react installed",
+        "Component tests focus on user behavior, not implementation",
+        "Accessibility queries used (getByRole, getByLabelText)",
+        "Components in src/components/ have corresponding test files",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-001"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-011",
+      "title": "Test Ink CLI Components",
+      "description": "As a developer, I want Ink-specific components tested appropriately.",
+      "acceptanceCriteria": [
+        "ink-testing-library installed for CLI component testing",
+        "CLI-specific rendering tested",
+        "Keyboard input handling tested where applicable",
+        "Output formatting tested",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-010"
+      ],
+      "completionNotes": "Completed by agent"
+    },
+    {
+      "id": "US-012",
+      "title": "Achieve 80% Coverage Threshold",
+      "description": "As a developer, I want coverage reporting to warn when below 80%.",
+      "acceptanceCriteria": [
+        "Coverage report generates for all source files",
+        "Vitest configured with coverage thresholds (warn mode)",
+        "Coverage report shows lines, branches, functions, statements",
+        "CI/npm script outputs warning if coverage < 80%",
+        "Coverage excludes test files and type definitions",
+        "npm run test passes",
+        "npm run typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "",
+      "dependsOn": [
+        "US-002",
+        "US-003",
+        "US-004",
+        "US-005",
+        "US-006",
+        "US-007",
+        "US-008",
+        "US-009",
+        "US-010",
+        "US-011"
+      ],
+      "completionNotes": "Completed by agent"
+    }
+  ],
+  "metadata": {
+    "updatedAt": "2026-01-24T18:21:07.296Z"
+  }
+}

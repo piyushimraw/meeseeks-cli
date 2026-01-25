@@ -1,0 +1,14 @@
+{
+  "id": "5004b82f-d9a3-4bb4-a1aa-460c56e5987d",
+  "status": "running",
+  "startedAt": "2026-01-24T17:26:11.503Z",
+  "updatedAt": "2026-01-24T18:21:07.303Z",
+  "agentPlugin": "claude",
+  "trackerPlugin": "json",
+  "prdPath": "./tasks/prd.json",
+  "currentIteration": 12,
+  "maxIterations": 13,
+  "totalTasks": 0,
+  "tasksCompleted": 12,
+  "cwd": "/Users/piyush.shrivastava/projects/meeseeks"
+}
