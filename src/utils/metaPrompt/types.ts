@@ -21,16 +21,6 @@ export interface PrimeFile {
   sourceCommit?: string;  // For incremental updates
 }
 
-// Command Prompt Definition
-export interface CommandPrompt {
-  command: string;  // e.g., 'prime', 'plan', 'execute'
-  description: string;
-  agent: string;
-  model: string;
-  tools: string[];
-  promptContent: string;
-}
-
 // Meta Prompt Configuration
 export interface MetaPromptConfig {
   extension: MetaPromptExtension;

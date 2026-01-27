@@ -6,8 +6,6 @@ import { detectTechStack, hashTechStack } from '../utils/metaPrompt/techStackDet
 import {
   ensureTargetDir,
   getTargetDir,
-  getCommandsSubdir,
-  getOutputExtension,
   getPrimeSubdir,
   checkExistingFile,
   generateFile,
@@ -133,26 +131,22 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
           }
         }
 
-        // Also check command files
-        const commandFileNames = ['prime', 'plan', 'define-acceptance', 'execute', 'verify', 'status'];
-        const commandsSubdir = getCommandsSubdir(state.extension!);
-        const outputExt = getOutputExtension(state.extension!);
+        // Check command files for RooCode only (KiloCode uses modes instead)
+        if (state.extension === 'roocode') {
+          const commandFileNames = ['prime', 'plan', 'define-acceptance', 'execute', 'verify', 'status'];
 
-        for (const cmd of commandFileNames) {
-          const outputFilename = state.extension === 'roocode'
-            ? `${cmd}.md`
-            : `meeseeks:${cmd}.prompt.md`;  // Add meeseeks: prefix for KiloCode
-          const filePath = commandsSubdir
-            ? path.join(state.targetDir!, commandsSubdir, outputFilename)
-            : path.join(state.targetDir!, outputFilename);
-          const existing = checkExistingFile(filePath);
+          for (const cmd of commandFileNames) {
+            const outputFilename = `${cmd}.md`;
+            const filePath = path.join(state.targetDir!, 'commands', outputFilename);
+            const existing = checkExistingFile(filePath);
 
-          if (existing.exists && existing.content) {
-            filesToPrompt.push({ file: filePath, existingContent: existing.content });
+            if (existing.exists && existing.content) {
+              filesToPrompt.push({ file: filePath, existingContent: existing.content });
+            }
           }
         }
 
-        // Check mode files for KiloCode only (Phase 7.1)
+        // Check mode files for KiloCode (Phase 7.1)
         if (state.extension === 'kilocode') {
           // Check .kilocodemodes in project root
           const projectRoot = process.cwd();
@@ -160,6 +154,27 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
           const existingKilocodemodes = checkExistingFile(kilocodemodesPath);
           if (existingKilocodemodes.exists && existingKilocodemodes.content) {
             filesToPrompt.push({ file: kilocodemodesPath, existingContent: existingKilocodemodes.content });
+          }
+
+          // Check mode prompt files in .meeseeks/modes/ directory
+          const modesDir = path.join(projectRoot, '.meeseeks', 'modes');
+          for (const modeName of MODE_FILES) {
+            const modeFilePath = path.join(modesDir, `meeseeks-${modeName}.prompt.md`);
+            const existingMode = checkExistingFile(modeFilePath);
+            if (existingMode.exists && existingMode.content) {
+              filesToPrompt.push({ file: modeFilePath, existingContent: existingMode.content });
+            }
+          }
+        }
+
+        // Check mode files for RooCode (Phase 7.2 - T014)
+        if (state.extension === 'roocode') {
+          // Check .roomodes in project root
+          const projectRoot = process.cwd();
+          const roommodesPath = path.join(projectRoot, '.roomodes');
+          const existingRoomodes = checkExistingFile(roommodesPath);
+          if (existingRoomodes.exists && existingRoomodes.content) {
+            filesToPrompt.push({ file: roommodesPath, existingContent: existingRoomodes.content });
           }
 
           // Check mode prompt files in .meeseeks/modes/ directory
@@ -226,50 +241,45 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
             }
           }
 
-          // Copy command templates from embedded templates
-          const commandFiles = [
-            { name: 'prime' },
-            { name: 'plan' },
-            { name: 'define-acceptance' },
-            { name: 'execute' },
-            { name: 'verify' },
-            { name: 'status' },
-          ];
+          // Copy command templates from embedded templates (RooCode only - KiloCode uses modes)
+          if (state.extension === 'roocode') {
+            const commandFiles = [
+              { name: 'prime' },
+              { name: 'plan' },
+              { name: 'define-acceptance' },
+              { name: 'execute' },
+              { name: 'verify' },
+              { name: 'status' },
+            ];
 
-          const commandsSubdir = getCommandsSubdir(state.extension!);
-          const outputExt = getOutputExtension(state.extension!);
+            for (const cmd of commandFiles) {
+              // Get content from embedded templates
+              const content = getEmbeddedTemplate(state.extension!, cmd.name as TemplateName);
 
-          for (const cmd of commandFiles) {
-            // Get content from embedded templates
-            const content = getEmbeddedTemplate(state.extension!, cmd.name as TemplateName);
+              // Determine output filename with correct extension
+              const outputFilename = `${cmd.name}.md`;
 
-            // Determine output filename with correct extension and meeseeks: prefix for KiloCode
-            const outputFilename = state.extension === 'roocode'
-              ? `${cmd.name}.md`  // RooCode: rename .prompt.md to .md
-              : `meeseeks:${cmd.name}.prompt.md`;  // KiloCode: add meeseeks: prefix
+              // Determine target path - RooCode uses commands/ subdirectory
+              const targetPath = path.join(state.targetDir!, 'commands', outputFilename);
 
-            // Determine target path with correct subdirectory
-            const targetPath = commandsSubdir
-              ? path.join(state.targetDir!, commandsSubdir, outputFilename)
-              : path.join(state.targetDir!, outputFilename);
+              const choice = state.overwriteChoices.get(targetPath) || 'overwrite';
 
-            const choice = state.overwriteChoices.get(targetPath) || 'overwrite';
-
-            if (choice !== 'skip') {
-              const result = await generateFile(targetPath, content, choice);
-              results.push(result);
-            } else {
-              results.push({ path: targetPath, status: 'skipped' });
+              if (choice !== 'skip') {
+                const result = await generateFile(targetPath, content, choice);
+                results.push(result);
+              } else {
+                results.push({ path: targetPath, status: 'skipped' });
+              }
             }
           }
 
-          // Generate mode files for KiloCode only (Phase 7.1)
+          // Generate mode files for KiloCode (Phase 7.1)
           if (state.extension === 'kilocode') {
             // Generate .kilocodemodes in project root
             const kilocodemodesPath = path.join(projectRoot, '.kilocodemodes');
             const kilocodemodesChoice = state.overwriteChoices.get(kilocodemodesPath) || 'overwrite';
             if (kilocodemodesChoice !== 'skip') {
-              const kilocodemodesContent = getEmbeddedModeTemplate('kilocodemodes');
+              const kilocodemodesContent = getEmbeddedModeTemplate('kilocode', 'kilocodemodes');
               const kilocodemodesResult = await generateFile(kilocodemodesPath, kilocodemodesContent, kilocodemodesChoice);
               results.push(kilocodemodesResult);
             } else {
@@ -285,7 +295,39 @@ export const MetaPromptInit: React.FC<MetaPromptInitProps> = ({ onBack }) => {
               const modeChoice = state.overwriteChoices.get(modeFilePath) || 'overwrite';
 
               if (modeChoice !== 'skip') {
-                const modeContent = getEmbeddedModeTemplate(modeName);
+                const modeContent = getEmbeddedModeTemplate('kilocode', modeName);
+                const modeResult = await generateFile(modeFilePath, modeContent, modeChoice);
+                results.push(modeResult);
+              } else {
+                results.push({ path: modeFilePath, status: 'skipped' });
+              }
+            }
+          }
+
+          // Generate mode files for RooCode (Phase 7.2 - T015 and T016)
+          if (state.extension === 'roocode') {
+            // T015: Generate .roomodes in project root
+            const roommodesPath = path.join(projectRoot, '.roomodes');
+            const roommodesChoice = state.overwriteChoices.get(roommodesPath) || 'overwrite';
+            if (roommodesChoice !== 'skip') {
+              const roommodesContent = getEmbeddedModeTemplate('roocode', 'roomodes');
+              const roommodesResult = await generateFile(roommodesPath, roommodesContent, roommodesChoice);
+              results.push(roommodesResult);
+            } else {
+              results.push({ path: roommodesPath, status: 'skipped' });
+            }
+
+            // T016: Generate mode prompt files in .meeseeks/modes/ directory
+            const modesDir = path.join(projectRoot, '.meeseeks', 'modes');
+            ensureTargetDir(modesDir);
+
+            for (const modeName of MODE_FILES) {
+              const modeFilePath = path.join(modesDir, `meeseeks-${modeName}.prompt.md`);
+              const modeChoice = state.overwriteChoices.get(modeFilePath) || 'overwrite';
+
+              if (modeChoice !== 'skip') {
+                // Use KiloCode mode templates for RooCode as well (same content)
+                const modeContent = getEmbeddedModeTemplate('kilocode', modeName);
                 const modeResult = await generateFile(modeFilePath, modeContent, modeChoice);
                 results.push(modeResult);
               } else {

@@ -4,7 +4,6 @@
 export type {
   TechStack,
   PrimeFile,
-  CommandPrompt,
   MetaPromptConfig,
   OverwriteChoice,
   FileGenerationResult,

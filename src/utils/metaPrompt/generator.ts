@@ -21,28 +21,12 @@ export function getTargetDir(projectRoot: string, extension: MetaPromptExtension
 }
 
 /**
- * Get the commands subdirectory for an extension
- * RooCode uses a commands/ subdirectory, KiloCode puts files directly in workflows/
- */
-export function getCommandsSubdir(extension: MetaPromptExtension): string {
-  return extension === 'roocode' ? 'commands' : '';
-}
-
-/**
  * Get the subdirectory for prime/context files
  * RooCode: prime files go directly in .roo/ (same as targetDir)
  * KiloCode: prime files go in .kilocode/workflows/context/ to avoid command discovery
  */
 export function getPrimeSubdir(extension: MetaPromptExtension): string {
   return extension === 'kilocode' ? 'context' : '';
-}
-
-/**
- * Get the output file extension for an extension
- * RooCode uses .md, KiloCode uses .prompt.md
- */
-export function getOutputExtension(extension: MetaPromptExtension): string {
-  return extension === 'roocode' ? '.md' : '.prompt.md';
 }
 
 /**
@@ -138,7 +122,6 @@ export function generateIndexMd(targetDir: string, files: string[]): string {
       name => f.endsWith(name)
     )
   );
-  const commandFiles = files.filter(f => f.includes('/commands/') || f.includes('\\commands\\'));
   const planFiles = files.filter(f => f.includes('/plans/') || f.includes('\\plans\\'));
 
   let content = `# Meta Prompting Files
@@ -152,14 +135,6 @@ This directory contains AI-assisted development workflow configuration.
   for (const file of primeFiles) {
     const name = path.basename(file, '.md');
     content += `- [${name}](${path.relative(targetDir, file).replace(/\\/g, '/')})\n`;
-  }
-
-  if (commandFiles.length > 0) {
-    content += `\n## Command Prompts\n\n`;
-    for (const file of commandFiles) {
-      const name = path.basename(file, '.prompt.md');
-      content += `- [${name}](${path.relative(targetDir, file).replace(/\\/g, '/')})\n`;
-    }
   }
 
   if (planFiles.length > 0) {

@@ -3,9 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   getTargetDir,
-  getCommandsSubdir,
   getPrimeSubdir,
-  getOutputExtension,
   generateIndexMd,
 } from './generator.js';
 
@@ -39,20 +37,6 @@ describe('generator', () => {
     });
   });
 
-  describe('getCommandsSubdir', () => {
-    it('returns "commands" for roocode extension', () => {
-      const result = getCommandsSubdir('roocode');
-
-      expect(result).toBe('commands');
-    });
-
-    it('returns empty string for kilocode extension', () => {
-      const result = getCommandsSubdir('kilocode');
-
-      expect(result).toBe('');
-    });
-  });
-
   describe('getPrimeSubdir', () => {
     it('returns empty string for roocode extension', () => {
       const result = getPrimeSubdir('roocode');
@@ -64,20 +48,6 @@ describe('generator', () => {
       const result = getPrimeSubdir('kilocode');
 
       expect(result).toBe('context');
-    });
-  });
-
-  describe('getOutputExtension', () => {
-    it('returns .md for roocode extension', () => {
-      const result = getOutputExtension('roocode');
-
-      expect(result).toBe('.md');
-    });
-
-    it('returns .prompt.md for kilocode extension', () => {
-      const result = getOutputExtension('kilocode');
-
-      expect(result).toBe('.prompt.md');
     });
   });
 
@@ -99,21 +69,6 @@ describe('generator', () => {
       expect(result).toContain('STACK');
     });
 
-    it('generates index with command files section', () => {
-      const targetDir = '/project/.roo';
-      const files = [
-        '/project/.roo/ARCHITECTURE.md',
-        '/project/.roo/commands/prime.prompt.md',
-        '/project/.roo/commands/plan.prompt.md',
-      ];
-
-      const result = generateIndexMd(targetDir, files);
-
-      expect(result).toContain('## Command Prompts');
-      expect(result).toContain('prime');
-      expect(result).toContain('plan');
-    });
-
     it('generates index with plan files section', () => {
       const targetDir = '/project/.roo';
       const files = [
@@ -127,15 +82,6 @@ describe('generator', () => {
       expect(result).toContain('## Plans');
       expect(result).toContain('eng-123-impl.md');
       expect(result).toContain('feature-x-impl.md');
-    });
-
-    it('omits command section when no command files', () => {
-      const targetDir = '/project/.roo';
-      const files = ['/project/.roo/ARCHITECTURE.md'];
-
-      const result = generateIndexMd(targetDir, files);
-
-      expect(result).not.toContain('## Command Prompts');
     });
 
     it('omits plans section when no plan files', () => {
@@ -159,16 +105,6 @@ describe('generator', () => {
       expect(result).toContain('*Run `/prime` to regenerate');
     });
 
-    it('uses forward slashes in markdown links', () => {
-      const targetDir = '/project/.roo';
-      const files = ['/project/.roo/commands/prime.prompt.md'];
-
-      const result = generateIndexMd(targetDir, files);
-
-      // Should use forward slashes even if path had backslashes
-      expect(result).toMatch(/commands\/prime/);
-    });
-
     it('includes regeneration instructions', () => {
       const targetDir = '/project/.roo';
       const files: string[] = [];
@@ -176,16 +112,6 @@ describe('generator', () => {
       const result = generateIndexMd(targetDir, files);
 
       expect(result).toContain('Run `/prime` to regenerate codebase context files');
-    });
-
-    it('handles Windows-style paths in file list', () => {
-      const targetDir = '/project/.roo';
-      const files = ['/project/.roo\\commands\\prime.prompt.md'];
-
-      const result = generateIndexMd(targetDir, files);
-
-      // Should still generate valid markdown
-      expect(result).toContain('## Command Prompts');
     });
 
     it('identifies INTEGRATION.md as prime file', () => {
