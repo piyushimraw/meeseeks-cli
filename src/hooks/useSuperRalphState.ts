@@ -35,6 +35,7 @@ export interface SuperRalphScreenState {
   loadingMessage: string;
   activityLog: ActivityLogEntry[];
   logIdCounter: number;
+  liveOutput: string[];
 }
 
 export function createInitialState(): SuperRalphScreenState {
@@ -54,7 +55,19 @@ export function createInitialState(): SuperRalphScreenState {
     loadingMessage: '',
     activityLog: [],
     logIdCounter: 0,
+    liveOutput: [],
   };
+}
+
+export function appendLiveOutput(state: SuperRalphScreenState, chunk: string): SuperRalphScreenState {
+  // Keep last 8 lines of output
+  const newLines = chunk.split('\n').filter(l => l.trim());
+  const combined = [...state.liveOutput, ...newLines].slice(-8);
+  return {...state, liveOutput: combined};
+}
+
+export function clearLiveOutput(state: SuperRalphScreenState): SuperRalphScreenState {
+  return {...state, liveOutput: []};
 }
 
 export function addLogEntry(

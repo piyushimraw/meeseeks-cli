@@ -6,6 +6,8 @@ export interface ClaudeCliOptions {
   outputJson?: boolean;
   maxTurns?: number;
   cwd?: string;
+  onStdoutChunk?: (chunk: string) => void;
+  onStderrChunk?: (chunk: string) => void;
 }
 
 export function buildClaudeArgs(options: ClaudeCliOptions): string[] {
@@ -63,11 +65,15 @@ export function runClaude(options: ClaudeCliOptions): Promise<ClaudeCliResult> {
     let stderr = '';
 
     child.stdout.on('data', (data: Buffer) => {
-      stdout += data.toString();
+      const chunk = data.toString();
+      stdout += chunk;
+      options.onStdoutChunk?.(chunk);
     });
 
     child.stderr.on('data', (data: Buffer) => {
-      stderr += data.toString();
+      const chunk = data.toString();
+      stderr += chunk;
+      options.onStderrChunk?.(chunk);
     });
 
     child.on('close', (code) => {

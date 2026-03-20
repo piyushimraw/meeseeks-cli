@@ -102,8 +102,9 @@ export function updateProgressFromOutput(
 }
 
 export interface ExecutionCallbacks {
-  onIterationStart?: (iteration: number) => void;
+  onIterationStart?: (iteration: number, promptPreview: string) => void;
   onIterationComplete?: (iteration: number, output: string) => void;
+  onOutputChunk?: (chunk: string) => void;
   onTaskComplete?: (taskId: string) => void;
   onFailure?: (failure: ExecutionFailure) => void;
   onPause?: (reason: string) => void;
@@ -132,10 +133,20 @@ export async function executePhase(
     }
 
     const iteration = progress.iteration + 1;
-    callbacks?.onIterationStart?.(iteration);
-
     const prompt = buildIterationPrompt(phasePrompt, progress);
-    const result = await runClaude({prompt, cwd});
+
+    // Show prompt preview (first task being worked on)
+    const nextTask = progress.tasksRemaining[0] || 'unknown';
+    const promptPreview = `Working on ${nextTask} | Prompt: ${prompt.length} chars`;
+    callbacks?.onIterationStart?.(iteration, promptPreview);
+
+    const result = await runClaude({
+      prompt,
+      cwd,
+      onStdoutChunk: (chunk) => {
+        callbacks?.onOutputChunk?.(chunk);
+      },
+    });
 
     if (result.success) {
       progress = updateProgressFromOutput(progress, result.output, iteration);

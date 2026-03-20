@@ -15,6 +15,8 @@ import {
   setError,
   addLlmQuestion,
   addLogEntry,
+  appendLiveOutput,
+  clearLiveOutput,
   type SuperRalphScreenState,
   type ActivityLogEntry,
 } from '../hooks/useSuperRalphState.js';
@@ -508,20 +510,34 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
         DEFAULT_SUPER_RALPH_CONFIG.maxConsecutiveFailures,
         projectRoot,
         {
-          onIterationStart: (iteration) => {
+          onIterationStart: (iteration, promptPreview) => {
             if (cancelled) return;
-            setState(prev => ({
-              ...addLogEntry(prev, 'llm', `Iteration ${iteration} started`, 'Spawning fresh Claude Code session...'),
-              executionProgress: {
-                ...(prev.executionProgress || {phase: phaseNum, iteration: 0, maxIterations: DEFAULT_SUPER_RALPH_CONFIG.maxIterationsPerPhase, tasksCompleted: [], tasksRemaining: plan.tasks.map(t => t.id), currentTask: null, failures: [], filesChanged: []}),
-                iteration,
-              },
-            }));
+            setState(prev => {
+              let s = clearLiveOutput(prev);
+              s = addLogEntry(s, 'llm', `Iteration ${iteration} started`, promptPreview);
+              return {
+                ...s,
+                executionProgress: {
+                  ...(s.executionProgress || {phase: phaseNum, iteration: 0, maxIterations: DEFAULT_SUPER_RALPH_CONFIG.maxIterationsPerPhase, tasksCompleted: [], tasksRemaining: plan.tasks.map(t => t.id), currentTask: null, failures: [], filesChanged: []}),
+                  iteration,
+                },
+              };
+            });
+          },
+          onOutputChunk: (chunk) => {
+            if (cancelled) return;
+            setState(prev => appendLiveOutput(prev, chunk));
           },
           onIterationComplete: (iteration, output) => {
             if (cancelled) return;
-            const preview = output.slice(0, 100).replace(/\n/g, ' ');
-            setState(prev => addLogEntry(prev, 'success', `Iteration ${iteration} complete`, preview));
+            // Extract meaningful summary from output
+            const lines = output.split('\n').filter(l => l.trim());
+            const lastLines = lines.slice(-3).join(' | ').slice(0, 200);
+            setState(prev => {
+              let s = addLogEntry(prev, 'success', `Iteration ${iteration} complete (${output.length} chars)`, lastLines);
+              s = clearLiveOutput(s);
+              return s;
+            });
           },
           onTaskComplete: (taskId) => {
             if (cancelled) return;
@@ -529,7 +545,11 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
           },
           onFailure: (failure) => {
             if (cancelled) return;
-            setState(prev => addLogEntry(prev, 'error', `Task ${failure.taskId} failed (iter ${failure.iteration})`, failure.error.slice(0, 150)));
+            setState(prev => {
+              let s = addLogEntry(prev, 'error', `Task ${failure.taskId} failed (iter ${failure.iteration})`, failure.error.slice(0, 200));
+              s = clearLiveOutput(s);
+              return s;
+            });
           },
           onPause: (reason) => {
             if (cancelled) return;
@@ -741,6 +761,18 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
                 )}
               </Box>
             )}
+
+            {state.liveOutput.length > 0 && (
+              <Box flexDirection="column" marginTop={1}>
+                <Text color={palette.cyan} bold>Claude Output:</Text>
+                <Box flexDirection="column" marginLeft={1} borderStyle="single" borderColor={palette.dim} paddingX={1}>
+                  {state.liveOutput.map((line, i) => (
+                    <Text key={i} color={palette.dim} wrap="truncate">{line.slice(0, 100)}</Text>
+                  ))}
+                </Box>
+              </Box>
+            )}
+
             <ActivityLog entries={state.activityLog} />
           </Box>
         );
