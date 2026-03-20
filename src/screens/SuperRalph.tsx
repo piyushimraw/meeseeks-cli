@@ -167,6 +167,7 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
       }
 
       // Step 8: Parse scope assessment
+      setState(prev => addLogEntry(prev, 'info', 'Parsing Claude response...', `${result.output.length} chars received`));
       try {
         const assessment = parseScopeAssessment(result.output);
         setState(prev => {
@@ -193,10 +194,11 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
           };
         });
       } catch (err) {
-        setState(prev => setError(
-          addLogEntry(prev, 'error', 'Failed to parse scope assessment', String(err)),
-          `Could not parse scope assessment from Claude response`,
-        ));
+        setState(prev => {
+          let s = addLogEntry(prev, 'error', 'Failed to parse scope assessment', String(err));
+          s = addLogEntry(s, 'info', 'Raw response (first 200 chars):', result.output.slice(0, 200));
+          return setError(s, `Could not parse scope assessment from Claude response`);
+        });
       }
     };
 

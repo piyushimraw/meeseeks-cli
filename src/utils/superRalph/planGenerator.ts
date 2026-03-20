@@ -60,13 +60,16 @@ Keep tasks focused. Each task should have clear acceptance criteria.`;
 }
 
 export function parsePlan(llmOutput: string): SuperRalphPlan {
-  const jsonMatch = llmOutput.match(/\`\`\`(?:json)?\s*\n?([\s\S]*?)\n?\`\`\`/);
-  const jsonStr = jsonMatch ? jsonMatch[1].trim() : llmOutput.trim();
+  // Strategy 1: Extract from markdown code fences
+  const fenceMatch = llmOutput.match(/```(?:json)?\s*\n([\s\S]*?)\n\s*```/);
+  // Strategy 2: Find first { ... } block
+  const braceMatch = llmOutput.match(/\{[\s\S]*\}/);
+  const jsonStr = fenceMatch ? fenceMatch[1].trim() : braceMatch ? braceMatch[0].trim() : llmOutput.trim();
 
   try {
     return JSON.parse(jsonStr);
   } catch {
-    throw new Error(`Failed to parse plan: ${jsonStr.slice(0, 200)}`);
+    throw new Error(`Failed to parse plan (${llmOutput.length} chars): ${llmOutput.slice(0, 300)}`);
   }
 }
 

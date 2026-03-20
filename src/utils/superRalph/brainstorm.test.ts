@@ -5,6 +5,7 @@ import {
   buildFollowUpPrompt,
   buildBrainstormOutput,
   parseScopeAssessment,
+  extractJson,
 } from './brainstorm.js';
 import type {BrainstormQuestion, BrainstormOutput, ScopeAssessment} from '../../types/superRalph.js';
 
@@ -54,6 +55,27 @@ describe('brainstorm', () => {
     });
   });
 
+  describe('extractJson', () => {
+    it('should extract from markdown code fences', () => {
+      const input = 'Here is the result:\n```json\n{"key": "value"}\n```\nDone.';
+      expect(extractJson(input)).toBe('{"key": "value"}');
+    });
+
+    it('should extract from bare code fences', () => {
+      const input = '```\n{"key": "value"}\n```';
+      expect(extractJson(input)).toBe('{"key": "value"}');
+    });
+
+    it('should find JSON object in prose', () => {
+      const input = 'The assessment is: {"isMultiPhase": false, "reasoning": "small"} and that is all.';
+      expect(JSON.parse(extractJson(input))).toHaveProperty('isMultiPhase');
+    });
+
+    it('should return raw input when no JSON found', () => {
+      expect(extractJson('no json here')).toBe('no json here');
+    });
+  });
+
   describe('parseScopeAssessment', () => {
     it('should parse valid JSON from LLM output', () => {
       const llmOutput = '```json\n{"isMultiPhase":true,"reasoning":"Too big","proposedPhases":[{"title":"Phase 1","description":"Layout"}]}\n```';
@@ -66,6 +88,18 @@ describe('brainstorm', () => {
       const llmOutput = '{"isMultiPhase":false,"reasoning":"Small task","proposedPhases":[{"title":"Single Phase","description":"Everything"}]}';
       const result = parseScopeAssessment(llmOutput);
       expect(result.isMultiPhase).toBe(false);
+    });
+
+    it('should handle JSON embedded in prose', () => {
+      const llmOutput = 'Based on my analysis, here is the scope:\n\n{"isMultiPhase":true,"reasoning":"Complex","proposedPhases":[{"title":"P1","description":"D1"}]}\n\nLet me know if you need changes.';
+      const result = parseScopeAssessment(llmOutput);
+      expect(result.isMultiPhase).toBe(true);
+    });
+
+    it('should handle missing proposedPhases gracefully', () => {
+      const llmOutput = '{"isMultiPhase":false,"reasoning":"Simple task"}';
+      const result = parseScopeAssessment(llmOutput);
+      expect(result.proposedPhases).toEqual([]);
     });
 
     it('should throw on invalid JSON', () => {

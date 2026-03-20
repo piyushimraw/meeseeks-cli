@@ -43,34 +43,38 @@ Consider:
 - Whether there are clear sequential dependencies
 - Overall complexity and risk
 
-Respond with JSON in this exact format:
+IMPORTANT: Respond with ONLY a JSON object, no markdown, no explanation, no code fences. Just the raw JSON:
 
-\`\`\`json
-{
-  "isMultiPhase": boolean,
-  "reasoning": "Your explanation of why this is or isn't multi-phase",
-  "proposedPhases": [
-    { "title": "Phase title", "description": "Brief description of what this phase covers" }
-  ]
-}
-\`\`\`
+{"isMultiPhase": true or false, "reasoning": "Your explanation", "proposedPhases": [{"title": "Phase title", "description": "Brief description"}]}
 
 If single phase, still include one entry in proposedPhases. Be concise.`;
 }
 
+export function extractJson(llmOutput: string): string {
+  // Strategy 1: Extract from markdown code fences
+  const fenceMatch = llmOutput.match(/```(?:json)?\s*\n([\s\S]*?)\n\s*```/);
+  if (fenceMatch) return fenceMatch[1].trim();
+
+  // Strategy 2: Find first { ... } block (greedy)
+  const braceMatch = llmOutput.match(/\{[\s\S]*\}/);
+  if (braceMatch) return braceMatch[0].trim();
+
+  // Strategy 3: Return as-is and let JSON.parse try
+  return llmOutput.trim();
+}
+
 export function parseScopeAssessment(llmOutput: string): ScopeAssessment {
-  const jsonMatch = llmOutput.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  const jsonStr = jsonMatch ? jsonMatch[1].trim() : llmOutput.trim();
+  const jsonStr = extractJson(llmOutput);
 
   try {
     const parsed = JSON.parse(jsonStr);
     return {
-      isMultiPhase: parsed.isMultiPhase,
-      reasoning: parsed.reasoning,
-      proposedPhases: parsed.proposedPhases,
+      isMultiPhase: Boolean(parsed.isMultiPhase),
+      reasoning: parsed.reasoning || '',
+      proposedPhases: Array.isArray(parsed.proposedPhases) ? parsed.proposedPhases : [],
     };
   } catch {
-    throw new Error(`Failed to parse scope assessment: ${jsonStr.slice(0, 200)}`);
+    throw new Error(`Failed to parse JSON from response (${llmOutput.length} chars): ${llmOutput.slice(0, 300)}`);
   }
 }
 
