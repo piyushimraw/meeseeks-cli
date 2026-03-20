@@ -23,8 +23,13 @@ import {gatherCodebaseStructure, gatherProjectDocs, buildContextPrompt} from '..
 import {createSession, getTasksDir} from '../utils/superRalph/session.js';
 import {buildPlanGenerationPrompt, parsePlan, generatePromptFile, savePlan} from '../utils/superRalph/planGenerator.js';
 import {isClaudeInstalled, runClaude} from '../utils/claudeCli.js';
+import {executePhase} from '../utils/superRalph/executor.js';
+import {sendNotification} from '../utils/superRalph/notifications.js';
+import {DEFAULT_SUPER_RALPH_CONFIG} from '../types/superRalph.js';
+import type {SuperRalphPlan} from '../types/superRalph.js';
 import {runGit} from '../utils/git.js';
 import fs from 'node:fs';
+import path from 'node:path';
 
 const palette = {
   cyan: '#00DFFF',
@@ -359,6 +364,116 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
     return () => { cancelled = true; };
   }, [state.step === 'planning']);
 
+  // Run ralph loop when step transitions to 'executing'
+  useEffect(() => {
+    if (state.step !== 'executing') return;
+    // Only start if we haven't begun iterating yet
+    if (state.executionProgress && state.executionProgress.iteration > 0) return;
+
+    let cancelled = false;
+    const projectRoot = process.cwd();
+
+    const runExecution = async () => {
+      if (!state.sessionId) {
+        setState(prev => setError(addLogEntry(prev, 'error', 'No session ID'), 'No session to execute'));
+        return;
+      }
+
+      const phaseIndex = state.currentPhaseIndex;
+      const phaseNum = phaseIndex + 1;
+      const tasksDir = getTasksDir(projectRoot, state.sessionId);
+
+      // Load the plan and prompt from disk
+      const planPath = path.join(tasksDir, `phase-${phaseNum}-plan.json`);
+      const promptPath = path.join(tasksDir, `phase-${phaseNum}-prompt.md`);
+
+      if (!fs.existsSync(planPath) || !fs.existsSync(promptPath)) {
+        setState(prev => setError(
+          addLogEntry(prev, 'error', 'Plan files not found', `Expected: ${planPath}`),
+          'Plan files missing — cannot execute',
+        ));
+        return;
+      }
+
+      const plan: SuperRalphPlan = JSON.parse(fs.readFileSync(planPath, 'utf-8'));
+      const phasePrompt = fs.readFileSync(promptPath, 'utf-8');
+
+      setState(prev => addLogEntry(prev, 'phase', `Starting ralph loop for Phase ${phaseNum}`, `${plan.tasks.length} tasks, max ${DEFAULT_SUPER_RALPH_CONFIG.maxIterationsPerPhase} iterations`));
+
+      const finalProgress = await executePhase(
+        tasksDir,
+        phaseNum,
+        phasePrompt,
+        plan,
+        DEFAULT_SUPER_RALPH_CONFIG.maxIterationsPerPhase,
+        DEFAULT_SUPER_RALPH_CONFIG.maxConsecutiveFailures,
+        projectRoot,
+        {
+          onIterationStart: (iteration) => {
+            if (cancelled) return;
+            setState(prev => ({
+              ...addLogEntry(prev, 'llm', `Iteration ${iteration} started`, 'Spawning fresh Claude Code session...'),
+              executionProgress: {
+                ...(prev.executionProgress || {phase: phaseNum, iteration: 0, maxIterations: DEFAULT_SUPER_RALPH_CONFIG.maxIterationsPerPhase, tasksCompleted: [], tasksRemaining: plan.tasks.map(t => t.id), currentTask: null, failures: [], filesChanged: []}),
+                iteration,
+              },
+            }));
+          },
+          onIterationComplete: (iteration, output) => {
+            if (cancelled) return;
+            const preview = output.slice(0, 100).replace(/\n/g, ' ');
+            setState(prev => addLogEntry(prev, 'success', `Iteration ${iteration} complete`, preview));
+          },
+          onTaskComplete: (taskId) => {
+            if (cancelled) return;
+            setState(prev => addLogEntry(prev, 'success', `Task ${taskId} completed`));
+          },
+          onFailure: (failure) => {
+            if (cancelled) return;
+            setState(prev => addLogEntry(prev, 'error', `Task ${failure.taskId} failed (iter ${failure.iteration})`, failure.error.slice(0, 150)));
+          },
+          onPause: (reason) => {
+            if (cancelled) return;
+            sendNotification('failure', {taskId: 'loop', error: reason});
+            setState(prev => {
+              let s = addLogEntry(prev, 'error', `Loop paused: ${reason}`);
+              return transitionToPaused(s, reason);
+            });
+          },
+          onPhaseComplete: () => {
+            if (cancelled) return;
+            sendNotification('phase-complete', {phase: phaseNum, title: plan.title});
+            setState(prev => {
+              let s = addLogEntry(prev, 'success', `Phase ${phaseNum} complete!`, `All ${plan.tasks.length} tasks done`);
+              // Check if more phases remain
+              const nextPhaseIndex = phaseIndex + 1;
+              if (nextPhaseIndex < prev.confirmedPhases.length) {
+                s = addLogEntry(s, 'phase', `Moving to Phase ${nextPhaseIndex + 1}: ${prev.confirmedPhases[nextPhaseIndex].title}`);
+                // TODO: trigger next phase brainstorming
+              } else {
+                sendNotification('session-complete', {task: prev.taskDescription});
+                s = transitionToCompleted(s);
+                s = addLogEntry(s, 'success', 'All phases complete!');
+              }
+              return s;
+            });
+          },
+        },
+      );
+
+      // Update final progress in state
+      if (!cancelled) {
+        setState(prev => ({
+          ...prev,
+          executionProgress: finalProgress,
+        }));
+      }
+    };
+
+    runExecution();
+    return () => { cancelled = true; };
+  }, [state.step === 'executing' && (!state.executionProgress || state.executionProgress.iteration === 0)]);
+
   const renderContent = () => {
     switch (state.step) {
       case 'idle':
@@ -474,23 +589,37 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
           </Box>
         );
 
-      case 'executing':
+      case 'executing': {
+        const progress = state.executionProgress;
+        const totalTasks = progress
+          ? progress.tasksCompleted.length + progress.tasksRemaining.length
+          : 0;
+        const completedTasks = progress ? progress.tasksCompleted.length : 0;
+        const progressBar = totalTasks > 0
+          ? '█'.repeat(Math.round((completedTasks / totalTasks) * 20)) + '░'.repeat(20 - Math.round((completedTasks / totalTasks) * 20))
+          : '';
+
         return (
           <Box flexDirection="column" marginTop={1}>
-            <Text color={palette.yellow} bold>Executing Ralph Loop</Text>
-            {state.executionProgress && (
-              <Box flexDirection="column" marginTop={1}>
-                <Text>Phase: {state.executionProgress.phase}</Text>
-                <Text>Iteration: {state.executionProgress.iteration}/{state.executionProgress.maxIterations}</Text>
-                <Text>
-                  Tasks: {state.executionProgress.tasksCompleted.length}/
-                  {state.executionProgress.tasksCompleted.length + state.executionProgress.tasksRemaining.length}
-                </Text>
+            <Box>
+              <Text color={palette.cyan}>
+                <Spinner type="dots" />
+              </Text>
+              <Text color={palette.yellow} bold> Executing Ralph Loop</Text>
+            </Box>
+            {progress && (
+              <Box flexDirection="column" marginTop={1} marginLeft={2}>
+                <Text>Phase: {progress.phase}  |  Iteration: {progress.iteration}/{progress.maxIterations}</Text>
+                <Text>Tasks: {completedTasks}/{totalTasks}  {progressBar}</Text>
+                {progress.failures.length > 0 && (
+                  <Text color={palette.red}>Failures: {progress.failures.length}</Text>
+                )}
               </Box>
             )}
             <ActivityLog entries={state.activityLog} />
           </Box>
         );
+      }
 
       case 'paused':
         return (
