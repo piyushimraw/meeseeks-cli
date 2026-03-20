@@ -231,28 +231,42 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
     });
   }, []);
 
+  const transitionToPlanningWithLog = useCallback(() => {
+    setState(prev => {
+      let s = addLogEntry(prev, 'success', 'Brainstorming complete — generating plan...');
+      s = transitionToPlanning(s);
+      return s;
+    });
+  }, []);
+
   const handleAnswerSubmit = useCallback((value: string) => {
     if (value.toLowerCase() === 'skip') {
       setState(prev => {
         let s = skipQuestion(prev);
         s = addLogEntry(s, 'info', 'Question skipped');
+        // Auto-advance if all questions answered
+        if (s.currentQuestionIndex >= s.questions.length) {
+          s = addLogEntry(s, 'success', 'All questions answered — generating plan...');
+          s = transitionToPlanning(s);
+        }
         return s;
       });
     } else if (value.toLowerCase() === 'done') {
-      setState(prev => {
-        let s = addLogEntry(prev, 'success', 'Brainstorming complete — generating plan...');
-        s = transitionToPlanning(s);
-        return s;
-      });
+      transitionToPlanningWithLog();
     } else {
       setState(prev => {
         let s = addQuestionAnswer(prev, value);
         s = addLogEntry(s, 'success', 'Answer recorded', value.slice(0, 80) + (value.length > 80 ? '...' : ''));
+        // Auto-advance if all questions answered
+        if (s.currentQuestionIndex >= s.questions.length) {
+          s = addLogEntry(s, 'success', 'All questions answered — generating plan...');
+          s = transitionToPlanning(s);
+        }
         return s;
       });
     }
     setInputValue('');
-  }, []);
+  }, [transitionToPlanningWithLog]);
 
   // Run plan generation when step transitions to 'planning'
   useEffect(() => {
