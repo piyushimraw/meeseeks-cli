@@ -105,6 +105,8 @@ export interface ExecutionCallbacks {
   onIterationStart?: (iteration: number, promptPreview: string) => void;
   onIterationComplete?: (iteration: number, output: string) => void;
   onOutputChunk?: (chunk: string) => void;
+  onAssistantText?: (text: string) => void;
+  onToolUse?: (toolName: string, toolInput: string) => void;
   onTaskComplete?: (taskId: string) => void;
   onFailure?: (failure: ExecutionFailure) => void;
   onPause?: (reason: string) => void;
@@ -145,6 +147,12 @@ export async function executePhase(
       cwd,
       onStdoutChunk: (chunk) => {
         callbacks?.onOutputChunk?.(chunk);
+      },
+      onAssistantText: (text) => {
+        callbacks?.onAssistantText?.(text);
+      },
+      onToolUse: (toolName, toolInput) => {
+        callbacks?.onToolUse?.(toolName, toolInput);
       },
     });
 

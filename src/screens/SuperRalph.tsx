@@ -524,9 +524,13 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
               };
             });
           },
-          onOutputChunk: (chunk) => {
+          onAssistantText: (text) => {
             if (cancelled) return;
-            setState(prev => appendLiveOutput(prev, chunk));
+            setState(prev => appendLiveOutput(prev, text));
+          },
+          onToolUse: (toolName, toolInput) => {
+            if (cancelled) return;
+            setState(prev => addLogEntry(prev, 'context', `Tool: ${toolName}`, toolInput));
           },
           onIterationComplete: (iteration, output) => {
             if (cancelled) return;
