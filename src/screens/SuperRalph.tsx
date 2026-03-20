@@ -123,9 +123,9 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
         sessionId: session.id,
       }));
 
-      // Step 3: Gather codebase structure
+      // Step 3: Gather codebase structure (depth 2 to keep it concise)
       setState(prev => addLogEntry(prev, 'context', 'Scanning codebase structure...'));
-      const codebaseStructure = gatherCodebaseStructure(projectRoot);
+      const codebaseStructure = gatherCodebaseStructure(projectRoot, 2);
       if (cancelled) return;
       const fileCount = codebaseStructure.split('\n').length;
       setState(prev => addLogEntry(prev, 'success', `Codebase scanned`, `${fileCount} entries found`));
@@ -139,7 +139,7 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
 
       // Step 5: Gather git history
       setState(prev => addLogEntry(prev, 'context', 'Reading git history...'));
-      const gitResult = runGit(['log', '--oneline', '-20']);
+      const gitResult = runGit(['log', '--oneline', '-10']);
       const gitHistory = gitResult.success ? gitResult.stdout : '';
       if (cancelled) return;
       setState(prev => addLogEntry(prev, 'success', 'Git history gathered', `${gitHistory.split('\n').filter(Boolean).length} recent commits`));
@@ -155,7 +155,7 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
       }));
 
       const scopePrompt = buildScopeAssessmentPrompt(state.taskDescription, contextPrompt);
-      const result = await runClaude({prompt: scopePrompt, cwd: projectRoot, maxTurns: 1});
+      const result = await runClaude({prompt: scopePrompt, cwd: projectRoot});
       if (cancelled) return;
 
       if (!result.success) {
@@ -300,7 +300,7 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
       }));
 
       const planPrompt = buildPlanGenerationPrompt(brainstormOutput, contextPrompt);
-      const result = await runClaude({prompt: planPrompt, cwd: projectRoot, maxTurns: 1});
+      const result = await runClaude({prompt: planPrompt, cwd: projectRoot});
       if (cancelled) return;
 
       if (!result.success) {
