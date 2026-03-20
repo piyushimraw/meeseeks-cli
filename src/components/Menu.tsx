@@ -57,6 +57,12 @@ const menuItems: MenuItemData[] = [
     category: 'agents',
   },
   {
+    label: 'Super Ralph',
+    value: 'super-ralph',
+    description: 'Autonomous feature development',
+    category: 'agents',
+  },
+  {
     label: 'Meta Prompting Setup',
     value: 'meta-init',
     description: 'Generate RooCode/KiloCode files',

@@ -14,6 +14,7 @@ import {SprintView} from './screens/SprintView.js';
 import {WorkflowWizard} from './screens/WorkflowWizard.js';
 import {PlanGenerator} from './screens/PlanGenerator.js';
 import {MetaPromptInit} from './screens/MetaPromptInit.js';
+import {SuperRalph} from './screens/SuperRalph.js';
 import {CopilotProvider} from './context/CopilotContext.js';
 import {JiraProvider, useJira} from './context/JiraContext.js';
 import {KnowledgeBaseProvider} from './context/KnowledgeBaseContext.js';
@@ -27,8 +28,8 @@ const palette = {
   green: '#00FF88',
 };
 
-const AppContent = () => {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('main');
+const AppContent: React.FC<{initialScreen?: Screen}> = ({initialScreen}) => {
+  const [currentScreen, setCurrentScreen] = useState<Screen>(initialScreen || 'main');
   const [workflowTicket, setWorkflowTicket] = useState<JiraTicket | null>(null);
   const [planTicket, setPlanTicket] = useState<JiraTicket | null>(null);
   const { refresh } = useJira();
@@ -124,6 +125,8 @@ const AppContent = () => {
         );
       case 'meta-init':
         return <MetaPromptInit onBack={handleBack} />;
+      case 'super-ralph':
+        return <SuperRalph onBack={handleBack} />;
       case 'main':
       default:
         return <Menu onSelect={handleSelect} />;
@@ -162,13 +165,13 @@ const AppContent = () => {
   );
 };
 
-const App = () => {
+const App: React.FC<{initialScreen?: Screen}> = ({initialScreen}) => {
   return (
     <CredentialProvider>
       <JiraProvider>
         <CopilotProvider>
           <KnowledgeBaseProvider>
-            <AppContent />
+            <AppContent initialScreen={initialScreen} />
           </KnowledgeBaseProvider>
         </CopilotProvider>
       </JiraProvider>
@@ -176,4 +179,8 @@ const App = () => {
   );
 };
 
-render(<App />);
+const args = process.argv.slice(2);
+const isSuperRalph = args[0] === 'super-ralph';
+const superRalphTask = isSuperRalph ? args.slice(1).join(' ') : undefined;
+
+render(<App initialScreen={isSuperRalph ? 'super-ralph' : undefined} />);
