@@ -9,6 +9,7 @@ import {
   transitionToCompleted,
   addQuestionAnswer,
   confirmPhaseBreakdown,
+  addLogEntry,
   type SuperRalphScreenState,
 } from './useSuperRalphState.js';
 
@@ -19,6 +20,37 @@ describe('useSuperRalphState', () => {
       expect(state.step).toBe('idle');
       expect(state.sessionId).toBeNull();
       expect(state.taskDescription).toBe('');
+      expect(state.activityLog).toEqual([]);
+      expect(state.logIdCounter).toBe(0);
+    });
+  });
+
+  describe('addLogEntry', () => {
+    it('should prepend a log entry with incrementing id', () => {
+      const state = createInitialState();
+      const next = addLogEntry(state, 'info', 'Gathering context', 'Reading README.md');
+      expect(next.activityLog).toHaveLength(1);
+      expect(next.activityLog[0].type).toBe('info');
+      expect(next.activityLog[0].message).toBe('Gathering context');
+      expect(next.activityLog[0].detail).toBe('Reading README.md');
+      expect(next.logIdCounter).toBe(1);
+    });
+
+    it('should prepend new entries (most recent first)', () => {
+      let state = createInitialState();
+      state = addLogEntry(state, 'info', 'First');
+      state = addLogEntry(state, 'success', 'Second');
+      expect(state.activityLog).toHaveLength(2);
+      expect(state.activityLog[0].message).toBe('Second');
+      expect(state.activityLog[1].message).toBe('First');
+    });
+
+    it('should cap log at 20 entries', () => {
+      let state = createInitialState();
+      for (let i = 0; i < 25; i++) {
+        state = addLogEntry(state, 'info', `Entry ${i}`);
+      }
+      expect(state.activityLog).toHaveLength(20);
     });
   });
 

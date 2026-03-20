@@ -11,6 +11,14 @@ export type SuperRalphStep =
   | 'completed'
   | 'error';
 
+export interface ActivityLogEntry {
+  id: number;
+  timestamp: string;
+  type: 'info' | 'context' | 'llm' | 'success' | 'error' | 'phase';
+  message: string;
+  detail?: string;
+}
+
 export interface SuperRalphScreenState {
   step: SuperRalphStep;
   taskDescription: string;
@@ -25,6 +33,8 @@ export interface SuperRalphScreenState {
   pauseReason: string | null;
   isLoading: boolean;
   loadingMessage: string;
+  activityLog: ActivityLogEntry[];
+  logIdCounter: number;
 }
 
 export function createInitialState(): SuperRalphScreenState {
@@ -42,6 +52,29 @@ export function createInitialState(): SuperRalphScreenState {
     pauseReason: null,
     isLoading: false,
     loadingMessage: '',
+    activityLog: [],
+    logIdCounter: 0,
+  };
+}
+
+export function addLogEntry(
+  state: SuperRalphScreenState,
+  type: ActivityLogEntry['type'],
+  message: string,
+  detail?: string,
+): SuperRalphScreenState {
+  const id = state.logIdCounter + 1;
+  const entry: ActivityLogEntry = {
+    id,
+    timestamp: new Date().toLocaleTimeString(),
+    type,
+    message,
+    detail,
+  };
+  return {
+    ...state,
+    logIdCounter: id,
+    activityLog: [entry, ...state.activityLog].slice(0, 20),
   };
 }
 
