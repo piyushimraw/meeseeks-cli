@@ -6,6 +6,7 @@ import {
   createSession,
   loadSession,
   updateSession,
+  listSessions,
   generateSessionId,
   getSessionDir,
   getTasksDir,
@@ -79,6 +80,22 @@ describe('session', () => {
     it('should return null for non-existent session', () => {
       const loaded = loadSession(tmpDir, 'nonexistent');
       expect(loaded).toBeNull();
+    });
+  });
+
+  describe('listSessions', () => {
+    it('should return empty array when no sessions exist', () => {
+      const sessions = listSessions(tmpDir);
+      expect(sessions).toEqual([]);
+    });
+
+    it('should list all sessions sorted by updatedAt descending', () => {
+      const s1 = createSession(tmpDir, 'First task');
+      const s2 = createSession(tmpDir, 'Second task');
+      const sessions = listSessions(tmpDir);
+      expect(sessions).toHaveLength(2);
+      // Most recently updated first
+      expect(sessions[0].id).toBe(s2.id);
     });
   });
 

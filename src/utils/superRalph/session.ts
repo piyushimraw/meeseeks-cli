@@ -75,6 +75,26 @@ export function loadSession(projectRoot: string, sessionId: string): SuperRalphS
   return JSON.parse(fs.readFileSync(sessionFile, 'utf-8'));
 }
 
+export function listSessions(projectRoot: string): SuperRalphSession[] {
+  const sessionsDir = path.join(projectRoot, '.super-ralph', 'sessions');
+  if (!fs.existsSync(sessionsDir)) return [];
+
+  const sessions: SuperRalphSession[] = [];
+  for (const entry of fs.readdirSync(sessionsDir, {withFileTypes: true})) {
+    if (!entry.isDirectory()) continue;
+    const sessionFile = path.join(sessionsDir, entry.name, 'session.json');
+    if (fs.existsSync(sessionFile)) {
+      try {
+        sessions.push(JSON.parse(fs.readFileSync(sessionFile, 'utf-8')));
+      } catch {
+        // Skip corrupt session files
+      }
+    }
+  }
+
+  return sessions.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
 export function updateSession(
   projectRoot: string,
   sessionId: string,

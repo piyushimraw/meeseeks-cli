@@ -1,4 +1,4 @@
-import React, {useState, useCallback, useEffect} from 'react';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 import TextInput from 'ink-text-input';
 import Spinner from 'ink-spinner';
@@ -20,7 +20,8 @@ import {
 } from '../hooks/useSuperRalphState.js';
 import {getTemplateQuestions, buildScopeAssessmentPrompt, parseScopeAssessment, buildFollowUpPrompt, buildBrainstormOutput} from '../utils/superRalph/brainstorm.js';
 import {gatherCodebaseStructure, gatherProjectDocs, buildContextPrompt} from '../utils/superRalph/contextGatherer.js';
-import {createSession, getTasksDir} from '../utils/superRalph/session.js';
+import {createSession, getTasksDir, listSessions, loadSession} from '../utils/superRalph/session.js';
+import {loadProgress} from '../utils/superRalph/executor.js';
 import {buildPlanGenerationPrompt, parsePlan, generatePromptFile, savePlan} from '../utils/superRalph/planGenerator.js';
 import {isClaudeInstalled, runClaude} from '../utils/claudeCli.js';
 import {executePhase} from '../utils/superRalph/executor.js';
@@ -42,6 +43,17 @@ const palette = {
 
 interface SuperRalphProps {
   onBack: () => void;
+}
+
+function getRelativeTime(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 const LogIcon: Record<ActivityLogEntry['type'], string> = {
@@ -87,16 +99,103 @@ const ActivityLog: React.FC<{entries: ActivityLogEntry[]}> = ({entries}) => {
   );
 };
 
+interface ResumableSession {
+  id: string;
+  task: string;
+  status: string;
+  phaseNum: number;
+  totalPhases: number;
+  updatedAt: string;
+  hasProgress: boolean;
+}
+
+function findResumableSessions(): ResumableSession[] {
+  const projectRoot = process.cwd();
+  const sessions = listSessions(projectRoot);
+
+  return sessions
+    .filter(s => s.status !== 'completed')
+    .map(s => {
+      const phaseNum = s.currentPhase || 1;
+      const tasksDir = getTasksDir(projectRoot, s.id);
+      const planExists = fs.existsSync(path.join(tasksDir, `phase-${phaseNum}-plan.json`));
+      const progress = planExists ? loadProgress(tasksDir, phaseNum) : null;
+
+      return {
+        id: s.id,
+        task: s.task,
+        status: s.status,
+        phaseNum,
+        totalPhases: s.phases.length,
+        updatedAt: s.updatedAt,
+        hasProgress: Boolean(progress),
+      };
+    })
+    .filter(s => {
+      // Only show sessions that have a plan to resume from
+      const tasksDir = getTasksDir(process.cwd(), s.id);
+      return fs.existsSync(path.join(tasksDir, `phase-${s.phaseNum}-plan.json`));
+    });
+}
+
 export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
   const [state, setState] = useState<SuperRalphScreenState>(createInitialState());
   const [inputValue, setInputValue] = useState('');
+  const [resumableSessions] = useState<ResumableSession[]>(() => findResumableSessions());
+  const [selectedSessionIndex, setSelectedSessionIndex] = useState(-1);
+  const executionStartedRef = useRef(false);
 
   useInput((_input, key) => {
     if (key.escape) {
       onBack();
       return;
     }
+
+    // Navigate resumable sessions on idle screen
+    if (state.step === 'idle' && resumableSessions.length > 0) {
+      if (key.upArrow) {
+        setSelectedSessionIndex(prev => prev > 0 ? prev - 1 : resumableSessions.length - 1);
+      }
+      if (key.downArrow) {
+        setSelectedSessionIndex(prev => prev < resumableSessions.length - 1 ? prev + 1 : 0);
+      }
+      if (key.return && selectedSessionIndex >= 0) {
+        handleResumeSession(resumableSessions[selectedSessionIndex]);
+      }
+    }
   });
+
+  const handleResumeSession = useCallback((session: ResumableSession) => {
+    const projectRoot = process.cwd();
+    const tasksDir = getTasksDir(projectRoot, session.id);
+    const phaseNum = session.phaseNum;
+
+    // Load plan to get phase info
+    const planPath = path.join(tasksDir, `phase-${phaseNum}-plan.json`);
+    const plan: SuperRalphPlan = JSON.parse(fs.readFileSync(planPath, 'utf-8'));
+    const progress = loadProgress(tasksDir, phaseNum);
+
+    const completedCount = progress ? progress.tasksCompleted.length : 0;
+    const totalCount = plan.tasks.length;
+
+    setState(prev => {
+      let s: SuperRalphScreenState = {
+        ...prev,
+        step: 'executing',
+        sessionId: session.id,
+        taskDescription: session.task,
+        currentPhaseIndex: phaseNum - 1,
+        confirmedPhases: [{title: plan.title, description: ''}],
+        executionProgress: progress,
+      };
+      s = addLogEntry(s, 'phase', `Resuming session: "${session.task}"`);
+      s = addLogEntry(s, 'info', `Phase ${phaseNum}: ${plan.title}`, `${completedCount}/${totalCount} tasks completed`);
+      if (progress && progress.failures.length > 0) {
+        s = addLogEntry(s, 'error', `${progress.failures.length} previous failure(s)`);
+      }
+      return s;
+    });
+  }, []);
 
   // Run scoping pipeline when step transitions to 'scoping'
   useEffect(() => {
@@ -367,8 +466,8 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
   // Run ralph loop when step transitions to 'executing'
   useEffect(() => {
     if (state.step !== 'executing') return;
-    // Only start if we haven't begun iterating yet
-    if (state.executionProgress && state.executionProgress.iteration > 0) return;
+    if (executionStartedRef.current) return;
+    executionStartedRef.current = true;
 
     let cancelled = false;
     const projectRoot = process.cwd();
@@ -472,14 +571,40 @@ export const SuperRalph: React.FC<SuperRalphProps> = ({onBack}) => {
 
     runExecution();
     return () => { cancelled = true; };
-  }, [state.step === 'executing' && (!state.executionProgress || state.executionProgress.iteration === 0)]);
+  }, [state.step]);
 
   const renderContent = () => {
     switch (state.step) {
       case 'idle':
         return (
           <Box flexDirection="column" marginTop={1}>
-            <Text color={palette.yellow}>Describe your task:</Text>
+            {resumableSessions.length > 0 && (
+              <Box flexDirection="column" marginBottom={1}>
+                <Text color={palette.yellow} bold>Resume a session:</Text>
+                <Box flexDirection="column" marginLeft={1} marginTop={1}>
+                  {resumableSessions.map((s, i) => {
+                    const isSelected = i === selectedSessionIndex;
+                    const age = getRelativeTime(s.updatedAt);
+                    return (
+                      <Box key={s.id}>
+                        <Text color={isSelected ? palette.cyan : palette.dim}>
+                          {isSelected ? '> ' : '  '}
+                          {s.task.slice(0, 50)}{s.task.length > 50 ? '...' : ''}
+                        </Text>
+                        <Text color={palette.dim}> ({age}, phase {s.phaseNum}, {s.status})</Text>
+                      </Box>
+                    );
+                  })}
+                </Box>
+                <Box marginTop={1} marginLeft={1}>
+                  <Text color={palette.dim}>Up/Down to select, Enter to resume</Text>
+                </Box>
+                <Box marginTop={1}>
+                  <Text color={palette.orange}>{'— or —'}</Text>
+                </Box>
+              </Box>
+            )}
+            <Text color={palette.yellow}>New task:</Text>
             <Box marginTop={1}>
               <Text color={palette.cyan}>&gt; </Text>
               <TextInput
