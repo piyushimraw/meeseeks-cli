@@ -1,4 +1,4 @@
-export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings' | 'sprint' | 'workflow' | 'plan-generator' | 'meta-init';
+export type Screen = 'main' | 'copilot-connect' | 'qa-plan' | 'git-changes' | 'knowledge-base' | 'model-select' | 'test-watcher' | 'settings' | 'sprint' | 'workflow' | 'plan-generator' | 'meta-init' | 'super-ralph';
 
 export interface MenuItem {
   label: string;
